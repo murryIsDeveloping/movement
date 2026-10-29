@@ -48,6 +48,15 @@ poses:
   - feature: lean
     op: '>'
     value: -0.1
+  - feature: right_wrist_up
+    op: <
+    value: 0.4
+  - feature: right_wrist_vy
+    op: <
+    value: 1.5
+  - feature: right_wrist_vy
+    op: '>'
+    value: -1.5
   margin: 0.1
   enabled: true
   hold: 0.25
@@ -81,6 +90,15 @@ poses:
   - feature: lean
     op: '>'
     value: -0.1
+  - feature: left_wrist_up
+    op: <
+    value: 0.4
+  - feature: left_wrist_vy
+    op: <
+    value: 1.5
+  - feature: left_wrist_vy
+    op: '>'
+    value: -1.5
   margin: 0.1
   enabled: true
   hold: 0.25
