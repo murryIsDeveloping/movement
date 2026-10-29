@@ -21,6 +21,13 @@ FEATURES = {
     "right_wrist_out":  ("Right wrist sideways from shoulder (+ = away from body)", "torso"),
     "left_wrist_up":    ("Left wrist above shoulder", "torso"),
     "right_wrist_up":   ("Right wrist above shoulder", "torso"),
+    "left_wrist_vx":    ("Left hand sideways speed (+ = moving right in the preview; swipe)", "torso/s"),
+    "right_wrist_vx":   ("Right hand sideways speed (+ = moving right in the preview; swipe)", "torso/s"),
+    "left_wrist_vy":    ("Left hand vertical speed (+ = moving up)", "torso/s"),
+    "right_wrist_vy":   ("Right hand vertical speed (+ = moving up)", "torso/s"),
+    "left_punch":       ("Left elbow straightening speed (punch sideways/across; straight at camera barely shows)", "deg/s"),
+    "right_punch":      ("Right elbow straightening speed (punch sideways/across; straight at camera barely shows)", "deg/s"),
+    "clap":             ("Hands closing speed (+ = coming together); add wrists_distance < 0.3 for a clap", "torso/s"),
     "wrists_distance":  ("Distance between wrists", "torso"),
     "wrist_low":        ("Lowest wrist below hips (touch ground)", "torso"),
     "lean":             ("Shoulders sideways of hips (+ = your right... mirrored view)", "torso"),
@@ -58,9 +65,11 @@ class _Baseline:
 
 
 class FeatureEngine:
-    def __init__(self, rise_window=0.4):
+    def __init__(self, rise_window=0.4, vel_window=0.15):
         self.rise_window = rise_window
+        self.vel_window = vel_window
         self.hip_hist: deque[tuple[float, float]] = deque()
+        self.vel_hist: deque[tuple[float, dict]] = deque()
         self.hip_base = _Baseline()
         self.knee_base = {L.LEFT_KNEE: _Baseline(), L.RIGHT_KNEE: _Baseline()}
         self.knee_up = {L.LEFT_KNEE: False, L.RIGHT_KNEE: False}
@@ -111,6 +120,22 @@ class FeatureEngine:
             f[f"{side}_wrist_out"] = u(sign * (xy[w, 0] - xy[s, 0]))
             f[f"{side}_wrist_up"] = u(xy[s, 1] - xy[w, 1])
         f["wrists_distance"] = u(np.linalg.norm(xy[L.LEFT_WRIST] - xy[L.RIGHT_WRIST]))
+
+        # speeds over the last vel_window seconds: long enough to smooth jitter, short enough for a swipe or punch
+        now = {"left": xy[L.LEFT_WRIST].copy(), "right": xy[L.RIGHT_WRIST].copy(),
+               "left_angle": f["left_arm_angle"], "right_angle": f["right_arm_angle"], "dist": f["wrists_distance"]}
+        self.vel_hist.append((t, now))
+        while t - self.vel_hist[0][0] > self.vel_window:
+            self.vel_hist.popleft()
+        t0, then = self.vel_hist[0]
+        dt = t - t0
+        rate = (lambda a, b: (a - b) / dt) if dt > 0.03 else (lambda a, b: a * 0)
+        for side in ("left", "right"):
+            v = rate(now[side], then[side])
+            f[f"{side}_wrist_vx"] = u(v[0])
+            f[f"{side}_wrist_vy"] = u(-v[1])
+            f[f"{side}_punch"] = rate(now[f"{side}_angle"], then[f"{side}_angle"])
+        f["clap"] = rate(then["dist"], now["dist"])
         f["wrist_low"] = u(max(xy[L.LEFT_WRIST, 1], xy[L.RIGHT_WRIST, 1]) - hips[1])
 
         # posture

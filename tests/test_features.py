@@ -99,6 +99,54 @@ def test_step_cadence_when_jogging():
     assert f["step_cadence"] > 1.5
 
 
+def test_wrist_velocity_on_swipe():
+    e = FeatureEngine()
+    run(e, still())
+    # right wrist sweeps 0.3 image widths leftwards (1.5 torso) over 0.3s
+    f = None
+    for i in range(1, 10):
+        p = standing(); p[L.RIGHT_WRIST, 0] -= 0.3 * i / 9
+        f = e.update(p, 1.0 + 0.3 * i / 9)
+    assert f["right_wrist_vx"] < -4
+    assert abs(f["left_wrist_vx"]) < 0.1
+    assert abs(f["right_wrist_vy"]) < 0.1
+
+
+def test_motion_features_zero_when_still():
+    f = run(FeatureEngine(), still())
+    for k in ("left_wrist_vx", "right_wrist_vx", "left_wrist_vy", "right_wrist_vy", "left_punch", "right_punch", "clap"):
+        assert f[k] == 0, (k, f[k])
+
+
+def test_punch_on_fast_elbow_extension():
+    e = FeatureEngine()
+    f = None
+    # right arm out sideways, elbow goes from 90 to straight over 0.15s
+    for i in range(14):   # extend over frames 0-5, then hold straight past the speed window
+        a = math.radians(90 * (1 - min(i, 5) / 5))   # forearm bend from straight
+        p = standing()
+        p[L.RIGHT_ELBOW, :2] = p[L.RIGHT_SHOULDER, :2] + (-0.1, 0)
+        p[L.RIGHT_WRIST, :2] = p[L.RIGHT_ELBOW, :2] + (-0.1 * math.cos(a), -0.1 * math.sin(a))
+        f = e.update(p, 1.0 + i * 0.03)
+        if i == 5:
+            assert f["right_punch"] > 400
+    assert abs(f["left_punch"]) < 1
+    assert abs(f["right_punch"]) < 1   # arm now held straight
+
+
+def test_clap_when_hands_come_together():
+    e = FeatureEngine()
+    run(e, still())
+    f = None
+    for i in range(1, 6):
+        p = standing()
+        p[L.LEFT_WRIST, :2] = (0.63 - 0.12 * i / 5, 0.35)
+        p[L.RIGHT_WRIST, :2] = (0.37 + 0.12 * i / 5, 0.35)
+        f = e.update(p, 1.0 + i * 0.03)
+    assert f["clap"] > 4
+    assert f["wrists_distance"] < 0.15
+
+
 def test_lean_sign():
     p = standing(); p[[L.LEFT_SHOULDER, L.RIGHT_SHOULDER, L.NOSE], 0] += 0.1
     f = FeatureEngine().update(p, 0.0)
