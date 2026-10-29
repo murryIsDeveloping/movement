@@ -1,0 +1,8 @@
+mediapipe>=0.10
+opencv-python
+pynput
+pyyaml
+numpy
+pytest
+aiohttp
+pyinstaller

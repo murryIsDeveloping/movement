@@ -1,0 +1,91 @@
+camera:
+  index: 0
+  width: 640
+  height: 480
+model: models/pose_landmarker_lite.task
+port: 8765
+send_keys: true
+poses:
+- name: jog
+  key: w
+  conditions:
+  - feature: step_cadence
+    op: '>'
+    value: 0.4
+  - feature: lean
+    op: '>'
+    value: -0.35
+  - feature: lean
+    op: <
+    value: 0.35
+  margin: 0.1
+  enabled: true
+- name: jump
+  key: space
+  conditions:
+  - feature: hip_rise
+    op: '>'
+    value: 0.32
+  margin: 0.1
+  enabled: true
+- name: right
+  key: d
+  conditions:
+  - feature: right_arm_raise
+    op: <
+    value: 120
+  - feature: right_arm_raise
+    op: '>'
+    value: 70
+  margin: 0.1
+  enabled: true
+- name: left
+  key: a
+  conditions:
+  - feature: left_arm_raise
+    op: '>'
+    value: 70
+  - feature: left_arm_raise
+    op: <
+    value: 120
+  margin: 0.1
+  enabled: true
+- name: shoot
+  key: '1'
+  conditions:
+  - feature: right_arm_angle
+    op: '>'
+    value: 100
+  - feature: left_arm_angle
+    op: <
+    value: 71
+  - feature: left_arm_raise
+    op: <
+    value: 52
+  - feature: right_arm_raise
+    op: '>'
+    value: 87
+  margin: 0.1
+  enabled: true
+- name: stride right
+  key: e
+  conditions:
+  - feature: step_cadence
+    op: '>'
+    value: 0.5
+  - feature: lean
+    op: <
+    value: -0.35
+  margin: 0.1
+  enabled: true
+- name: stride left
+  key: q
+  conditions:
+  - feature: step_cadence
+    op: '>'
+    value: 0.5
+  - feature: lean
+    op: '>'
+    value: 0.35
+  margin: 0.1
+  enabled: true
