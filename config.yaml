@@ -11,13 +11,13 @@ poses:
   conditions:
   - feature: lean
     op: '>'
-    value: -0.35
+    value: -0.25
   - feature: lean
     op: <
-    value: 0.35
+    value: 0.25
   - feature: step_cadence
     op: '>'
-    value: 0.5
+    value: 0.4
   margin: 0.1
   enabled: true
 - name: jump
@@ -33,16 +33,13 @@ poses:
   conditions:
   - feature: right_arm_raise
     op: <
-    value: 120
+    value: 100
   - feature: right_arm_raise
     op: '>'
-    value: 70
+    value: 76
   - feature: left_arm_raise
     op: <
     value: 35
-  - feature: hip_drop
-    op: '>'
-    value: 0
   - feature: lean
     op: <
     value: 0.1
@@ -56,13 +53,10 @@ poses:
   conditions:
   - feature: step_cadence
     op: '>'
-    value: 0.5
+    value: 0.4
   - feature: lean
-    op: <
-    value: -0.35
-  - feature: hip_drop
     op: '>'
-    value: 0
+    value: 0.25
   margin: 0.1
   enabled: true
 - name: left
@@ -70,16 +64,13 @@ poses:
   conditions:
   - feature: left_arm_raise
     op: '>'
-    value: 70
+    value: 76
   - feature: left_arm_raise
     op: <
-    value: 120
+    value: 100
   - feature: right_arm_raise
     op: <
     value: 35
-  - feature: hip_drop
-    op: '>'
-    value: 0
   - feature: lean
     op: <
     value: 0.1
@@ -93,17 +84,14 @@ poses:
   conditions:
   - feature: step_cadence
     op: '>'
-    value: 0.5
+    value: 0.4
   - feature: lean
-    op: '>'
-    value: 0.35
-  - feature: hip_drop
-    op: '>'
-    value: 0
+    op: <
+    value: -0.25
   margin: 0.1
   enabled: true
 - name: pick up
-  key: p
+  key: l
   conditions:
   - feature: left_arm_raise
     op: <
@@ -119,28 +107,28 @@ poses:
 - name: shoot
   key: '1'
   conditions:
-  - feature: right_arm_angle
-    op: <
-    value: 180
   - feature: left_arm_angle
     op: <
+    value: 180
+  - feature: right_arm_angle
+    op: <
     value: 58
-  - feature: right_wrist_up
-    op: '>'
-    value: -0.11
   - feature: left_wrist_up
     op: '>'
+    value: -0.11
+  - feature: right_wrist_up
+    op: '>'
     value: -0.37
-  - feature: left_arm_raise
+  - feature: right_arm_raise
     op: '>'
     value: 38
-  - feature: right_arm_raise
+  - feature: left_arm_raise
     op: '>'
     value: 18
   margin: 0.1
-  enabled: true
+  enabled: false
 - name: hold sword
-  key: '2'
+  key: '1'
   conditions:
   - feature: wrists_distance
     op: '>'
@@ -160,7 +148,7 @@ poses:
   margin: 0.1
   enabled: true
 - name: right up
-  key: '3'
+  key: '2'
   conditions:
   - feature: right_wrist_up
     op: '>'
@@ -174,7 +162,7 @@ poses:
   margin: 0.1
   enabled: true
 - name: left up
-  key: '1'
+  key: '3'
   conditions:
   - feature: left_wrist_up
     op: '>'
@@ -188,7 +176,7 @@ poses:
   margin: 0.1
   enabled: true
 - name: squat hands up
-  key: '1'
+  key: '0'
   conditions:
   - feature: hip_drop
     op: '>'
@@ -202,7 +190,7 @@ poses:
   margin: 0.1
   enabled: true
 - name: squat hands out
-  key: '1'
+  key: '-'
   conditions:
   - feature: hip_drop
     op: '>'
@@ -219,10 +207,16 @@ poses:
   - feature: left_arm_raise
     op: <
     value: 112
+  - feature: left_arm_angle
+    op: '>'
+    value: 120
+  - feature: right_arm_angle
+    op: '>'
+    value: 120
   margin: 0.1
   enabled: true
 - name: right knee up
-  key: '1'
+  key: '4'
   conditions:
   - feature: right_knee_lift
     op: '>'
@@ -233,7 +227,7 @@ poses:
   margin: 0.1
   enabled: true
 - name: left knee up
-  key: '1'
+  key: '5'
   conditions:
   - feature: left_knee_lift
     op: '>'
@@ -243,11 +237,37 @@ poses:
     value: 0.1
   margin: 0.1
   enabled: true
-- name: pose 16
-  key: '1'
+- name: left punch
+  key: '9'
   conditions:
-  - feature: right_wrist_vx
+  - feature: left_punch
+    op: '>'
+    value: 500
+  - feature: hip_drop
     op: <
-    value: -5
+    value: 0.4
+  - feature: left_arm_raise
+    op: <
+    value: 75
+  - feature: right_arm_raise
+    op: <
+    value: 75
+  margin: 0.1
+  enabled: true
+- name: right punch
+  key: n
+  conditions:
+  - feature: right_punch
+    op: '>'
+    value: 500
+  - feature: hip_drop
+    op: <
+    value: 0.4
+  - feature: right_arm_raise
+    op: <
+    value: 75
+  - feature: left_arm_raise
+    op: <
+    value: 75
   margin: 0.1
   enabled: true
