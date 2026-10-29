@@ -4,20 +4,20 @@ camera:
   height: 480
 model: models/pose_landmarker_lite.task
 port: 8765
-send_keys: true
+send_keys: false
 poses:
 - name: jog
   key: w
   conditions:
-  - feature: step_cadence
-    op: '>'
-    value: 0.4
   - feature: lean
     op: '>'
     value: -0.35
   - feature: lean
     op: <
     value: 0.35
+  - feature: step_cadence
+    op: '>'
+    value: 0.5
   margin: 0.1
   enabled: true
 - name: jump
@@ -37,34 +37,18 @@ poses:
   - feature: right_arm_raise
     op: '>'
     value: 70
-  margin: 0.1
-  enabled: true
-- name: left
-  key: a
-  conditions:
-  - feature: left_arm_raise
-    op: '>'
-    value: 70
   - feature: left_arm_raise
     op: <
-    value: 120
-  margin: 0.1
-  enabled: true
-- name: shoot
-  key: '1'
-  conditions:
-  - feature: right_arm_angle
+    value: 35
+  - feature: hip_drop
     op: '>'
-    value: 100
-  - feature: left_arm_angle
+    value: 0
+  - feature: lean
     op: <
-    value: 71
-  - feature: left_arm_raise
-    op: <
-    value: 52
-  - feature: right_arm_raise
+    value: 0.1
+  - feature: lean
     op: '>'
-    value: 87
+    value: -0.1
   margin: 0.1
   enabled: true
 - name: stride right
@@ -76,6 +60,32 @@ poses:
   - feature: lean
     op: <
     value: -0.35
+  - feature: hip_drop
+    op: '>'
+    value: 0
+  margin: 0.1
+  enabled: true
+- name: left
+  key: a
+  conditions:
+  - feature: left_arm_raise
+    op: '>'
+    value: 70
+  - feature: left_arm_raise
+    op: <
+    value: 120
+  - feature: right_arm_raise
+    op: <
+    value: 35
+  - feature: hip_drop
+    op: '>'
+    value: 0
+  - feature: lean
+    op: <
+    value: 0.1
+  - feature: lean
+    op: '>'
+    value: -0.1
   margin: 0.1
   enabled: true
 - name: stride left
@@ -87,5 +97,157 @@ poses:
   - feature: lean
     op: '>'
     value: 0.35
+  - feature: hip_drop
+    op: '>'
+    value: 0
+  margin: 0.1
+  enabled: true
+- name: pick up
+  key: p
+  conditions:
+  - feature: left_arm_raise
+    op: <
+    value: 15
+  - feature: hip_drop
+    op: '>'
+    value: 0.5
+  - feature: right_arm_raise
+    op: <
+    value: 15
+  margin: 0.1
+  enabled: true
+- name: shoot
+  key: '1'
+  conditions:
+  - feature: right_arm_angle
+    op: <
+    value: 180
+  - feature: left_arm_angle
+    op: <
+    value: 58
+  - feature: right_wrist_up
+    op: '>'
+    value: -0.11
+  - feature: left_wrist_up
+    op: '>'
+    value: -0.37
+  - feature: left_arm_raise
+    op: '>'
+    value: 38
+  - feature: right_arm_raise
+    op: '>'
+    value: 18
+  margin: 0.1
+  enabled: true
+- name: hold sword
+  key: '2'
+  conditions:
+  - feature: wrists_distance
+    op: '>'
+    value: 0
+  - feature: left_arm_angle
+    op: <
+    value: 39
+  - feature: right_arm_angle
+    op: <
+    value: 36
+  - feature: right_arm_raise
+    op: '>'
+    value: 77
+  - feature: left_arm_raise
+    op: '>'
+    value: 82
+  margin: 0.1
+  enabled: true
+- name: right up
+  key: '3'
+  conditions:
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.75
+  - feature: right_arm_raise
+    op: '>'
+    value: 130
+  - feature: left_wrist_up
+    op: <
+    value: -0.2
+  margin: 0.1
+  enabled: true
+- name: left up
+  key: '1'
+  conditions:
+  - feature: left_wrist_up
+    op: '>'
+    value: 0.75
+  - feature: left_arm_raise
+    op: '>'
+    value: 130
+  - feature: right_wrist_up
+    op: <
+    value: -0.2
+  margin: 0.1
+  enabled: true
+- name: squat hands up
+  key: '1'
+  conditions:
+  - feature: hip_drop
+    op: '>'
+    value: 0.4
+  - feature: left_wrist_up
+    op: '>'
+    value: 0.75
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.75
+  margin: 0.1
+  enabled: true
+- name: squat hands out
+  key: '1'
+  conditions:
+  - feature: hip_drop
+    op: '>'
+    value: 0.4
+  - feature: right_arm_raise
+    op: '>'
+    value: 65
+  - feature: left_arm_raise
+    op: '>'
+    value: 67
+  - feature: right_arm_raise
+    op: <
+    value: 106
+  - feature: left_arm_raise
+    op: <
+    value: 112
+  margin: 0.1
+  enabled: true
+- name: right knee up
+  key: '1'
+  conditions:
+  - feature: right_knee_lift
+    op: '>'
+    value: 0.6
+  - feature: left_knee_lift
+    op: <
+    value: 0.1
+  margin: 0.1
+  enabled: true
+- name: left knee up
+  key: '1'
+  conditions:
+  - feature: left_knee_lift
+    op: '>'
+    value: 0.6
+  - feature: right_knee_lift
+    op: <
+    value: 0.1
+  margin: 0.1
+  enabled: true
+- name: pose 16
+  key: '1'
+  conditions:
+  - feature: right_wrist_vx
+    op: <
+    value: -5
   margin: 0.1
   enabled: true
