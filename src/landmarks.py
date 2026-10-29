@@ -1,4 +1,4 @@
-"""Landmark indices and the subset used for pose matching."""
+"""Landmark indices, the body subset drawn on the preview, and its skeleton lines."""
 from enum import IntEnum
 
 

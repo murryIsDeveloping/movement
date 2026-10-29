@@ -1,3 +1,5 @@
+import pytest
+
 from src.rules import Pose, Condition, RuleEngine
 
 
@@ -13,8 +15,8 @@ def test_inactive_by_default():
     r = make()
     s = r.update({"right_arm_raise": 10, "hip_drop": 0, "left_arm_raise": 10})
     assert r.keys() == set()
-    assert s["arm_right"]["active"] is False
-    assert s["arm_right"]["conds"] == [False]
+    assert s[0]["active"] is False
+    assert s[0]["conds"] == [False]
 
 
 def test_single_condition_activates():
@@ -56,3 +58,20 @@ def test_missing_feature_is_false():
 def test_roundtrip_dict():
     p = Pose("x", "q", [Condition("lean", "<", -0.3)], margin=0.2)
     assert Pose.from_dict(p.to_dict()) == p
+
+
+def test_same_name_poses_keep_separate_state():
+    r = RuleEngine([Pose("p", "a", [Condition("lean", ">", 0.2)]), Pose("p", "d", [Condition("lean", "<", -0.2)])])
+    s = r.update({"lean": 0.5})
+    assert r.keys() == {"a"}
+    assert [x["active"] for x in s] == [True, False]
+
+
+def test_from_dict_rejects_unknown_feature():
+    with pytest.raises(ValueError, match="unknown feature"):
+        Pose.from_dict({"name": "x", "key": "q", "conditions": [{"feature": "arm_rasie", "op": ">", "value": 1}]})
+
+
+def test_from_dict_rejects_bad_op():
+    with pytest.raises(ValueError, match="op must be"):
+        Pose.from_dict({"name": "x", "key": "q", "conditions": [{"feature": "lean", "op": ">=", "value": 1}]})

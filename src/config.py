@@ -30,7 +30,11 @@ def load(path: Path = CONFIG) -> dict:
         save(DEFAULT, path)
     with open(path) as f:
         cfg = yaml.safe_load(f) or {}
-    return {**DEFAULT, **cfg}
+    merged = {**DEFAULT, **cfg}
+    for k, v in DEFAULT.items():   # one level deep, so a camera block that only sets index keeps width and height
+        if isinstance(v, dict):
+            merged[k] = {**v, **(cfg.get(k) or {})}
+    return merged
 
 
 def save(cfg: dict, path: Path = CONFIG) -> None:

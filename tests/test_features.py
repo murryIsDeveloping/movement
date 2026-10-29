@@ -32,9 +32,9 @@ def test_standing_baselines_near_zero():
 
 def test_arm_raise_angles():
     p = standing()
-    # right arm straight out to side (image left, since right side of body is at smaller x)
-    p[L.RIGHT_ELBOW, :2] = p[L.RIGHT_SHOULDER, :2] + (-0.1, 0)
-    p[L.RIGHT_WRIST, :2] = p[L.RIGHT_SHOULDER, :2] + (-0.2, 0)
+    # right arm straight out to side (image right: mirrored, so the right side of the body is at larger x)
+    p[L.RIGHT_ELBOW, :2] = p[L.RIGHT_SHOULDER, :2] + (0.1, 0)
+    p[L.RIGHT_WRIST, :2] = p[L.RIGHT_SHOULDER, :2] + (0.2, 0)
     # left arm straight up
     p[L.LEFT_ELBOW, :2] = p[L.LEFT_SHOULDER, :2] + (0, -0.1)
     p[L.LEFT_WRIST, :2] = p[L.LEFT_SHOULDER, :2] + (0, -0.2)
@@ -46,7 +46,7 @@ def test_arm_raise_angles():
 
 def test_arm_angle_bent():
     p = standing()
-    p[L.RIGHT_ELBOW, :2] = p[L.RIGHT_SHOULDER, :2] + (-0.1, 0)
+    p[L.RIGHT_ELBOW, :2] = p[L.RIGHT_SHOULDER, :2] + (0.1, 0)
     p[L.RIGHT_WRIST, :2] = p[L.RIGHT_ELBOW, :2] + (0, -0.1)
     f = FeatureEngine().update(p, 0.0)
     assert math.isclose(f["right_arm_angle"], 90, abs_tol=1)
@@ -54,7 +54,7 @@ def test_arm_angle_bent():
 
 def test_wrist_out_positive_in_torso_units():
     p = standing()
-    p[L.RIGHT_WRIST, :2] = p[L.RIGHT_SHOULDER, :2] + (-0.2, 0)
+    p[L.RIGHT_WRIST, :2] = p[L.RIGHT_SHOULDER, :2] + (0.2, 0)
     f = FeatureEngine().update(p, 0.0)
     assert math.isclose(f["right_wrist_out"], 1.0, abs_tol=0.01)
     assert math.isclose(f["right_wrist_up"], 0.0, abs_tol=0.01)
@@ -125,8 +125,8 @@ def test_punch_on_fast_elbow_extension():
     for i in range(14):   # extend over frames 0-5, then hold straight past the speed window
         a = math.radians(90 * (1 - min(i, 5) / 5))   # forearm bend from straight
         p = standing()
-        p[L.RIGHT_ELBOW, :2] = p[L.RIGHT_SHOULDER, :2] + (-0.1, 0)
-        p[L.RIGHT_WRIST, :2] = p[L.RIGHT_ELBOW, :2] + (-0.1 * math.cos(a), -0.1 * math.sin(a))
+        p[L.RIGHT_ELBOW, :2] = p[L.RIGHT_SHOULDER, :2] + (0.1, 0)
+        p[L.RIGHT_WRIST, :2] = p[L.RIGHT_ELBOW, :2] + (0.1 * math.cos(a), -0.1 * math.sin(a))
         f = e.update(p, 1.0 + i * 0.03)
         if i == 5:
             assert f["right_punch"] > 400
@@ -140,11 +140,21 @@ def test_clap_when_hands_come_together():
     f = None
     for i in range(1, 6):
         p = standing()
-        p[L.LEFT_WRIST, :2] = (0.63 - 0.12 * i / 5, 0.35)
-        p[L.RIGHT_WRIST, :2] = (0.37 + 0.12 * i / 5, 0.35)
+        p[L.LEFT_WRIST, :2] = (0.37 + 0.12 * i / 5, 0.35)
+        p[L.RIGHT_WRIST, :2] = (0.63 - 0.12 * i / 5, 0.35)
         f = e.update(p, 1.0 + i * 0.03)
     assert f["clap"] > 4
     assert f["wrists_distance"] < 0.15
+
+
+def test_wrist_out_sign_per_side():
+    # mirrored view: each wrist moving away from the body is positive for its own side
+    p = standing()
+    p[L.LEFT_WRIST, 0] = p[L.LEFT_SHOULDER, 0] - 0.2
+    p[L.RIGHT_WRIST, 0] = p[L.RIGHT_SHOULDER, 0] + 0.2
+    f = FeatureEngine().update(p, 0.0)
+    assert math.isclose(f["left_wrist_out"], 1.0, abs_tol=0.01)
+    assert math.isclose(f["right_wrist_out"], 1.0, abs_tol=0.01)
 
 
 def test_lean_sign():

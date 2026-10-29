@@ -13,12 +13,6 @@ class KeyState:
             self.kb.release(k)
         self.held = set(wanted)
 
-    def pulse(self, key: str) -> None:
-        if key in self.held:
-            return
-        self.kb.press(key)
-        self.kb.release(key)
-
     def release_all(self) -> None:
         self.apply(set())
 

@@ -18,13 +18,6 @@ def test_press_on_enter_release_on_exit():
     assert kb.log == [("down", "w"), ("up", "w")]
 
 
-def test_pulse_taps_once():
-    kb = FakeKB()
-    ks = KeyState(kb)
-    ks.pulse("space")
-    assert kb.log == [("down", "space"), ("up", "space")]
-
-
 def test_release_all():
     kb = FakeKB()
     ks = KeyState(kb)

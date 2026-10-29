@@ -6,11 +6,8 @@ import numpy as np
 from mediapipe.tasks.python.core.base_options import BaseOptions
 from mediapipe.tasks.python.vision import PoseLandmarker, PoseLandmarkerOptions, RunningMode
 
-MODEL = Path(__file__).resolve().parent.parent / "models" / "pose_landmarker_lite.task"
-
-
 class PoseTracker:
-    def __init__(self, model_path: Path = MODEL):
+    def __init__(self, model_path: Path):
         opts = PoseLandmarkerOptions(
             base_options=BaseOptions(model_asset_path=str(model_path)),
             running_mode=RunningMode.VIDEO,
@@ -21,12 +18,20 @@ class PoseTracker:
         self.lm = PoseLandmarker.create_from_options(opts)
 
     def process(self, frame_rgb: np.ndarray, ts_ms: int):
-        img = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
+        """frame_rgb is the mirrored preview frame; landmarks come back in its coordinates.
+
+        MediaPipe is trained on unmirrored images and labels a mirrored person's right side as LEFT,
+        so detect on the unmirrored frame and mirror x afterwards: LEFT_* is then the user's left.
+        """
+        raw = np.ascontiguousarray(frame_rgb[:, ::-1])
+        img = mp.Image(image_format=mp.ImageFormat.SRGB, data=raw)
         res = self.lm.detect_for_video(img, ts_ms)
         if not res.pose_landmarks:
             return None
         lms = res.pose_landmarks[0]
-        return np.array([(l.x, l.y, l.z) for l in lms], dtype=np.float64)
+        p = np.array([(l.x, l.y, l.z) for l in lms], dtype=np.float64)
+        p[:, 0] = 1.0 - p[:, 0]
+        return p
 
     def close(self):
         self.lm.close()

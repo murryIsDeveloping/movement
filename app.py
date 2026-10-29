@@ -16,7 +16,7 @@ from src import paths
 
 paths.setup_frozen_env()
 from src.camera import Camera
-from src.features import FEATURES, FeatureEngine
+from src.features import FEATURE_INFO, FeatureEngine
 from src.keys import KeyState, pynput_keyboard
 from src.overlay import draw_skeleton
 from src.pose import PoseTracker
@@ -40,9 +40,10 @@ class App:
         self.running = True
 
     def set_config(self, new: dict):
+        cfg = {**self.cfg, **new}
+        rules = RuleEngine(cfgmod.poses_from(cfg))   # raises on a bad pose before anything changes
         with self.lock:
-            self.cfg = {**self.cfg, **new}
-            self.rules = RuleEngine(cfgmod.poses_from(self.cfg))
+            self.cfg, self.rules = cfg, rules
             cfgmod.save(self.cfg)
             if not self.cfg.get("send_keys"):
                 self.keys.release_all()
@@ -56,10 +57,10 @@ class App:
         cam = self.cfg["camera"]
         camera = tracker = None
         try:
-            camera = Camera(cam.get("index", 0), cam.get("width", 640), cam.get("height", 480))
+            camera = Camera(cam["index"], cam["width"], cam["height"])
             tracker = PoseTracker(cfgmod.ROOT / self.cfg["model"])
             t0 = time.monotonic()
-            fps_t, fps_n, fps = t0, 0, 0.0
+            fps_t, fps_n, fps = 0.0, 0, 0.0   # fps_t in the same clock as t
             while self.running:
                 frame = camera.read()
                 if frame is None:
@@ -69,20 +70,19 @@ class App:
                 feats = self.features.update(p, t) if p is not None else {}
                 with self.lock:
                     state = self.rules.update(feats)
-                    wanted = self.rules.keys() if self.cfg.get("send_keys") else set()
+                    held = self.rules.keys()
                     poses = [pz.to_dict() for pz in self.rules.poses]
                     send = bool(self.cfg.get("send_keys"))
-                self.keys.apply(wanted)
+                self.keys.apply(held if send else set())
 
                 fps_n += 1
-                if t - (fps_t - t0) > 1.0:
-                    fps, fps_n, fps_t = fps_n / (t - (fps_t - t0)), 0, time.monotonic()
+                if t - fps_t > 1.0:
+                    fps, fps_n, fps_t = fps_n / (t - fps_t), 0, t
                 draw_skeleton(frame, p)
                 _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 self.hub.publish(jpeg.tobytes(), {
                     "features": feats, "poses": poses, "state": state, "body": p is not None,
-                    "held": sorted(self.rules.keys()), "send_keys": send, "fps": round(fps, 1),
-                    "feature_info": {k: {"desc": d, "unit": u} for k, (d, u) in FEATURES.items()},
+                    "held": sorted(held), "send_keys": send, "fps": round(fps, 1), "feature_info": FEATURE_INFO,
                 })
         except Exception:
             traceback.print_exc()
@@ -96,7 +96,7 @@ class App:
 
     def run(self):
         threading.Thread(target=self.camera_loop, daemon=True).start()
-        port = int(self.cfg.get("port", 8765))
+        port = int(self.cfg["port"])
         url = f"http://localhost:{port}"
         print(f"GUI at {url}")
         if not accessibility_trusted(prompt=paths.frozen()):

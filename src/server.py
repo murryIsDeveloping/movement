@@ -3,10 +3,10 @@ import asyncio
 import json
 import threading
 
+import yaml
 from aiohttp import web
 
 from src import paths
-
 from src.rules import Pose
 
 STATIC = paths.resource_root() / "static"
@@ -54,7 +54,6 @@ async def stream(request):
 
 
 async def config_get(request):
-    import yaml
     hub: Hub = request.app["hub"]
     body = yaml.safe_dump(hub.get_config(), sort_keys=False, allow_unicode=True)
     return web.Response(text=body, content_type="text/yaml",
@@ -62,7 +61,6 @@ async def config_get(request):
 
 
 async def config_put(request):
-    import yaml
     hub: Hub = request.app["hub"]
     try:
         data = yaml.safe_load(await request.text()) or {}
@@ -86,7 +84,10 @@ async def ws_handler(request):
             if msg.type == web.WSMsgType.TEXT:
                 data = json.loads(msg.data)
                 if data.get("type") == "config" and hub.on_config:
-                    hub.on_config(data["config"])
+                    try:
+                        hub.on_config(data["config"])
+                    except ValueError as e:   # bad pose: keep the old config and the socket
+                        print(f"config rejected: {e}")
                 elif data.get("type") == "reset_baselines" and hub.on_reset:
                     hub.on_reset()
                 elif data.get("type") == "quit" and hub.on_quit:

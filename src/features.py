@@ -34,6 +34,12 @@ FEATURES = {
     "head_tilt":        ("Nose sideways of shoulder centre", "torso"),
 }
 
+# unit -> (min, max, step) for the GUI's sliders, meters and stick-figure solver
+UNIT_RANGES = {"deg": (0, 180, 1), "torso": (-2, 2, 0.01), "steps/s": (0, 5, 0.1), "torso/s": (-8, 8, 0.1), "deg/s": (-1500, 1500, 10)}
+
+# what the GUI knows about each feature
+FEATURE_INFO = {k: {"desc": d, "unit": u, "range": UNIT_RANGES[u]} for k, (d, u) in FEATURES.items()}
+
 
 def _angle(a, b, c) -> float:
     """Angle at b in degrees."""
@@ -70,17 +76,18 @@ class FeatureEngine:
         self.vel_window = vel_window
         self.hip_hist: deque[tuple[float, float]] = deque()
         self.vel_hist: deque[tuple[float, dict]] = deque()
-        self.hip_base = _Baseline()
-        self.knee_base = {L.LEFT_KNEE: _Baseline(), L.RIGHT_KNEE: _Baseline()}
         self.knee_up = {L.LEFT_KNEE: False, L.RIGHT_KNEE: False}
         self.last_leg = None
         self.steps: deque[float] = deque(maxlen=6)
+        self.reset_baselines()
 
     def reset_baselines(self):
         self.hip_base = _Baseline()
         self.knee_base = {L.LEFT_KNEE: _Baseline(), L.RIGHT_KNEE: _Baseline()}
 
     def update(self, p: np.ndarray, t: float) -> dict[str, float]:
+        # The GUI's stick figure re-implements the static formulas below (figFeatures in static/figure.js).
+        # Change one, change both.
         xy = p[:, :2]
         ls, rs = xy[L.LEFT_SHOULDER], xy[L.RIGHT_SHOULDER]
         lh, rh = xy[L.LEFT_HIP], xy[L.RIGHT_HIP]
@@ -112,9 +119,10 @@ class FeatureEngine:
         recent = [s for s in self.steps if t - s < 1.5]
         f["step_cadence"] = (len(recent) - 1) / (recent[-1] - recent[0]) if len(recent) >= 2 and recent[-1] > recent[0] else 0.0
 
-        # arms. "out" for left arm is +x, for right arm is -x (image is mirrored so this matches the viewer).
-        for side, s, e, w, sign in (("left", L.LEFT_SHOULDER, L.LEFT_ELBOW, L.LEFT_WRIST, 1),
-                                    ("right", L.RIGHT_SHOULDER, L.RIGHT_ELBOW, L.RIGHT_WRIST, -1)):
+        # arms. Mirrored image, like a mirror: the user's left is on the image left, so "out" is -x for the
+        # left arm and +x for the right.
+        for side, s, e, w, sign in (("left", L.LEFT_SHOULDER, L.LEFT_ELBOW, L.LEFT_WRIST, -1),
+                                    ("right", L.RIGHT_SHOULDER, L.RIGHT_ELBOW, L.RIGHT_WRIST, 1)):
             f[f"{side}_arm_raise"] = _raise(xy[s], xy[e])
             f[f"{side}_arm_angle"] = _angle(xy[s], xy[e], xy[w])
             f[f"{side}_wrist_out"] = u(sign * (xy[w, 0] - xy[s, 0]))
