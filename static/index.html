@@ -32,6 +32,7 @@
   .pose-head input.name { flex:1; min-width:120px; font-weight:600; }
   input, select { background:#0f1113; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; }
   input.key { width:80px; text-align:center; font-family:ui-monospace, Menlo, monospace; }
+  input.hold { width:64px; text-align:center; }
   .cond { display:grid; grid-template-columns: 10px 1fr auto 70px 1fr 90px auto; gap:8px; align-items:center; margin-top:8px; }
   .cond .dot { width:10px; height:10px; border-radius:50%; background:var(--off); }
   .cond.ok .dot { background:var(--on); }
@@ -181,7 +182,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') clashPanel.c
 document.getElementById('reset').onclick =() => send({ type: 'reset_baselines' });
 document.getElementById('quit').onclick = () => { send({ type: 'quit' }); document.body.innerHTML = '<h1 style="padding:2rem">Movement stopped. Close this tab.</h1>'; };
 document.getElementById('add').onclick = () => {
-  poses.push({ name: `pose ${poses.length + 1}`, key: '1', conditions: [{ feature: 'right_arm_raise', op: '>', value: 90 }], margin: 0.1, enabled: true });
+  poses.push({ name: `pose ${poses.length + 1}`, key: '1', conditions: [{ feature: 'right_arm_raise', op: '>', value: 90 }], margin: 0.1, enabled: true, hold: 0 });
   renderPoses(); scheduleSave();
 };
 
@@ -199,6 +200,7 @@ function renderPoses() {
         <button class="down" title="move down" ${pi === poses.length - 1 ? 'disabled' : ''}>↓</button>
         <input class="name" value="${esc(p.name)}" title="pose name">
         <span class="small">key</span><input class="key" value="${esc(p.key)}" title="pynput key name: a, 1, space, shift, f1 ...">
+        <span class="small">hold</span><input class="hold" type="number" min="0" step="0.05" value="${p.hold ?? 0}" title="seconds the key stays down after the pose ends: turns a quick punch into a proper press, and rides out brief tracking dropouts">
         <label class="toggle small"><input type="checkbox" class="en" ${p.enabled !== false ? 'checked' : ''}> enabled</label>
         <button class="addc">+ condition</button>
         <button class="cap" title="Record the movement and pick conditions from a frame">capture</button>
@@ -209,6 +211,7 @@ function renderPoses() {
     const refresh = () => { div.querySelector('.fig').innerHTML = figureSVG(p.conditions); scheduleClashes(); };
     div.querySelector('.name').oninput = e => { p.name = e.target.value; scheduleSave(); };
     div.querySelector('.key').oninput = e => { p.key = e.target.value; scheduleSave(); };
+    div.querySelector('.hold').oninput = e => { p.hold = Math.max(0, parseFloat(e.target.value) || 0); scheduleSave(); };
     div.querySelector('.en').onchange = e => { p.enabled = e.target.checked; renderPoses(); scheduleSave(); };
     div.querySelector('.up').onclick = () => movePose(pi, -1);
     div.querySelector('.down').onclick = () => movePose(pi, 1);

@@ -47,6 +47,7 @@ curl -L -o models/pose_landmarker_lite.task https://storage.googleapis.com/media
 
 - **send keys to game**: off by default. Tick when WoW is focused and you want keys delivered.
 - **+ new pose**: name, key, conditions (`feature > value`). All conditions true → key held. Dot goes green per condition live.
+- **hold**: seconds the key stays down after the pose ends. Turns a one-frame punch into a proper press and rides out brief tracking dropouts; costs that much delay on release. 0 = release immediately.
 - **↑ / ↓**: reorder poses.
 - **stick figure** on each pose: a body position that fires it, mirrored like the camera preview. Jump and jog animate.
 - **clashes (N)**: opens a side panel (Esc closes) listing pairs of poses on the same body part (same feature, or same arm) that can fire together, with the overlapping range and a figure of it. Poses on separate body parts (jog + arm raise) are combos and are not listed.

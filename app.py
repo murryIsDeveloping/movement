@@ -69,7 +69,7 @@ class App:
                 p = tracker.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), int(t * 1000))
                 feats = self.features.update(p, t) if p is not None else {}
                 with self.lock:
-                    state = self.rules.update(feats)
+                    state = self.rules.update(feats, t)
                     held = self.rules.keys()
                     poses = [pz.to_dict() for pz in self.rules.poses]
                     send = bool(self.cfg.get("send_keys"))

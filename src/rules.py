@@ -26,6 +26,7 @@ class Pose:
     conditions: list[Condition] = field(default_factory=list)
     margin: float = 0.1     # fraction of threshold kept as release slack
     enabled: bool = True
+    hold: float = 0.0       # seconds the key stays down after the conditions stop: a one-frame punch becomes a press
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -41,7 +42,8 @@ class Pose:
                 raise ValueError(f"pose {d['name']!r}: op must be '>' or '<', got {c['op']!r}")
             conds.append(Condition(c["feature"], c["op"], float(c["value"])))
         return cls(name=d["name"], key=str(d["key"]), conditions=conds,
-                   margin=float(d.get("margin", 0.1)), enabled=bool(d.get("enabled", True)))
+                   margin=float(d.get("margin", 0.1)), enabled=bool(d.get("enabled", True)),
+                   hold=max(0.0, float(d.get("hold", 0.0))))
 
 
 class RuleEngine:
@@ -50,13 +52,16 @@ class RuleEngine:
     def __init__(self, poses: list[Pose]):
         self.poses = poses
         self.active: set[int] = set()
+        self.until: dict[int, float] = {}   # pose -> time its hold runs out
         self.state: list[dict] = []
 
-    def update(self, features: dict[str, float]) -> list[dict]:
+    def update(self, features: dict[str, float], t: float) -> list[dict]:
         self.state = []
         for i, p in enumerate(self.poses):
             conds = [c.holds(features.get(c.feature), i in self.active, p.margin) for c in p.conditions]
-            now = p.enabled and bool(conds) and all(conds)
+            if p.enabled and conds and all(conds):
+                self.until[i] = t + p.hold
+            now = p.enabled and t <= self.until.get(i, -1.0)
             if now:
                 self.active.add(i)
             else:
