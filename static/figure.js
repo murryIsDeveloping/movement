@@ -1,4 +1,4 @@
-// Loaded before the main script in index.html. Uses its globals (poses, info, live, state, rangeOf, fmtU, esc) at call time.
+// Loaded before the main script in index.html. Uses its globals (poses, info, live, state, rangeOf, fmt, fmtU, esc) at call time.
 // ---------- preview figure: a stick figure posed so every condition holds ----------
 // Built in image coords like the camera overlay (mirrored, y down, torso = 1), so it matches the preview.
 // Static features are measured off the figure with the same formulas as src/features.py; motion and
@@ -177,7 +177,7 @@ function figureSVG(conds, caption = true) {
   const svg = `<svg viewBox="-1.4 -2 2.8 4.2"><line class="ground" x1="-1.3" y1="2.05" x2="1.3" y2="2.05"/>${body}</svg>`;
   if (!caption) return svg;
   const range = sweeps.length ? `<div class="small">moves through ${sweeps.map(s =>
-    `${s.feature.replace(/_/g, ' ')} ${fmtU(s.feature, s.lo)}–${fmtU(s.feature, s.hi)}`).join(', ')}</div>` : '';
+    `${s.feature.replace(/_/g, ' ')} ${fmt(s.lo)}–${fmtU(s.feature, s.hi)}`).join(', ')}</div>` : '';
   const tip = unmet.length ? `<div class="unmet">can't all hold at once: ${unmet.map(c => `${c.feature} ${c.op} ${c.value}`).join(', ')}</div>` : '';
   return `${svg}<div class="small">as seen in preview</div>${range}${tip}`;
 }
