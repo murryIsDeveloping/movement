@@ -21,6 +21,10 @@
   .pill { padding:4px 10px; border-radius:999px; background:var(--panel); border:1px solid var(--line); color:var(--dim); }
   .pill.on { color:#0b1; border-color:var(--on); color:var(--on); }
   .pill.bad { color:var(--bad); border-color:var(--bad); }
+  .err { display:flex; gap:8px; align-items:center; color:var(--bad); border:1px solid var(--bad); border-radius:6px; padding:4px 4px 4px 10px; margin:8px 0; }
+  .err[hidden] { display:none; }
+  .err span { flex:1; }
+  .err button { padding:0 8px; border:none; background:none; color:var(--bad); }
   button { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 12px; cursor:pointer; font:inherit; }
   button:hover { border-color:var(--accent); }
   button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -133,6 +137,7 @@
       <span class="pill" id="body">no body</span>
       <span class="pill" id="fps">0 fps</span>
       <label class="toggle pill"><input type="checkbox" id="send"> send keys to game</label>
+      <span class="pill bad" id="untrusted" title="System Settings › Privacy &amp; Security › Accessibility" hidden>keys blocked: grant Accessibility to Movement</span>
       <button id="reset" title="Re-learn standing height for hip_drop / knee lifts">reset baselines</button>
       <button id="quit" title="Stop the camera and exit the app">quit app</button>
     </div>
@@ -155,6 +160,7 @@
     </div>
     <p class="small">Edits save to <code>config.yaml</code> instantly. Export downloads it; import replaces all poses from a file.</p>
     <p class="small">A pose holds its key while every condition is true. Green dot = condition true now. Values are in torso lengths or degrees; drag a slider while doing the movement and watch the live number.</p>
+    <div class="err" id="cfgErr" hidden><span></span><button title="dismiss">×</button></div>
     <div id="poses"></div>
   </div>
 </div>
@@ -209,6 +215,8 @@ function connect() {
   ws = new WebSocket(`ws://${location.host}/ws`);
   ws.onmessage = e => {
     const m = JSON.parse(e.data);
+    // the server refused our last save and kept its config: say why, and take its poses back on the next broadcast
+    if (m.type === 'error') { cfgError('not saved: ' + m.error); pending = null; return; }
     live = m.features || {}; state = m.state || [];
     if (capture && capture.recording && m.body) capture.frames.push({ t: performance.now(), f: live });
     drillFrame(m);
@@ -218,10 +226,12 @@ function connect() {
     // Take the server's poses only when they're a real outside change (import, another tab): not stale
     // copies from before our last save, and never mid-typing, since a re-render drops input focus.
     const incoming = JSON.stringify(m.poses);
-    if (pending && (incoming === pending || performance.now() - pendingAt > 2000)) pending = null;
+    // a rejected save clears pending via the error reply, so one that ends any other way was accepted
+    if (pending && (incoming === pending || performance.now() - pendingAt > 2000)) { pending = null; cfgError(''); }
     const el = document.activeElement, typing = el && el.closest('#poses') && /^(INPUT|SELECT)$/.test(el.tagName);
     if (!dirty && !pending && !typing && incoming !== JSON.stringify(poses)) { poses = m.poses; renderPoses(); }
     document.getElementById('send').checked = !!m.send_keys;
+    document.getElementById('untrusted').hidden = !(m.send_keys && m.trusted === false);   // macOS only: always true elsewhere
     paused = m.paused ? (m.body ? m.missing : []) : null;   // the server debounces: a blip out of frame isn't a pause
     const ok = !m.error && m.body && !paused;
     document.getElementById('body').textContent = m.error ? 'camera error: ' + m.error : !m.body ? 'no body' : paused ? 'paused: not fully in frame' : 'body tracked';
@@ -243,6 +253,10 @@ function pausedText() {
   return paused.length ? `Paused: not fully in frame<small>out of frame: ${paused.map(esc).join(', ')}</small>`
                        : 'Paused: no body<small>step into view</small>';
 }
+
+const cfgErr = document.getElementById('cfgErr');
+function cfgError(msg) { cfgErr.hidden = !msg; cfgErr.firstChild.textContent = msg; }
+cfgErr.querySelector('button').onclick = () => cfgError('');
 
 function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 function pushConfig() { pending = JSON.stringify(poses); pendingAt = performance.now(); send({ type: 'config', config: { poses, send_keys: document.getElementById('send').checked } }); dirty = false; }

@@ -42,6 +42,7 @@ class App:
         self.hub.get_config = lambda: dict(self.cfg)
         self.hub.on_quit = self.quit
         self.running = True
+        self.trusted = True   # macOS Accessibility: checked in run(), then rechecked by trust_loop
 
     def set_config(self, new: dict):
         cfg = {**self.cfg, **new}
@@ -56,6 +57,13 @@ class App:
         self.running = False
         self.keys.release_all()
         threading.Timer(0.3, lambda: os._exit(0)).start()
+
+    def trust_loop(self):
+        """Rechecks Accessibility so granting it mid-session clears the GUI's warning. Its own thread, so the camera
+        loop only reads the flag and never waits on the check."""
+        while self.running:
+            time.sleep(3)
+            self.trusted = accessibility_trusted(prompt=False)
 
     def camera_loop(self):
         cam = self.cfg["camera"]
@@ -94,6 +102,7 @@ class App:
                 self.hub.publish(jpeg.tobytes(), {
                     "t": t, "features": feats, "poses": poses, "state": state, "body": p is not None, "paused": paused, "missing": missing,
                     "held": sorted(held), "send_keys": send, "fps": round(fps, 1), "feature_info": FEATURE_INFO, "key_names": KEY_LIST,
+                    "trusted": self.trusted,
                 })
         except Exception:
             traceback.print_exc()
@@ -110,8 +119,10 @@ class App:
         port = int(self.cfg["port"])
         url = f"http://localhost:{port}"
         print(f"GUI at {url}")
-        if not accessibility_trusted(prompt=paths.frozen()):
+        self.trusted = accessibility_trusted(prompt=paths.frozen())
+        if not self.trusted:
             print("Accessibility not granted: keys will not reach other apps")
+        threading.Thread(target=self.trust_loop, daemon=True).start()
         threading.Timer(1.0, lambda: webbrowser.open(url)).start()
         try:
             web.run_app(make_app(self.hub), host="127.0.0.1", port=port, print=None)

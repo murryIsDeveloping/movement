@@ -7,7 +7,7 @@ Each file covers the problem, where it is in the code, how to reproduce it, the 
 | # | Issue | Size | Status |
 |---|-------|------|--------|
 | 01 | [A bad key name crashes the camera loop](01-bad-key-crashes-camera.md) | small | done |
-| 02 | [Accessibility and rejected edits never reach the GUI](02-surface-server-errors.md) | small | open |
+| 02 | [Accessibility and rejected edits never reach the GUI](02-surface-server-errors.md) | small | done |
 | 03 | [Held keys look the same whether sent or not](03-send-keys-state-unclear.md) | small | open |
 | 04 | [No feedback while the game is focused](04-audio-cues-in-play.md) | small | open |
 | 05 | [The key field expects pynput names](05-key-capture-field.md) | small | open |

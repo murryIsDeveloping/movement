@@ -124,8 +124,9 @@ async def ws_handler(request):
                 if data.get("type") == "config" and hub.on_config:
                     try:
                         hub.on_config(data["config"])
-                    except ValueError as e:   # bad pose: keep the old config and the socket
+                    except ValueError as e:   # bad pose: keep the old config and the socket, and tell the page why
                         print(f"config rejected: {e}")
+                        await ws.send_str(json.dumps({"type": "error", "error": str(e)}))
                 elif data.get("type") == "reset_baselines" and hub.on_reset:
                     hub.on_reset()
                 elif data.get("type") == "quit" and hub.on_quit:
