@@ -5,9 +5,12 @@
 <title>movement</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>
-  :root { --bg:#141618; --panel:#1e2124; --line:#2e3236; --text:#e8e8e8; --dim:#8a9099; --on:#43d17a; --off:#5a6068; --warn:#f0b840; --bad:#e85d5d; --accent:#4f8ef7; }
+  :root { --bg:#141618; --panel:#1e2124; --field:#0f1113; --line:#2e3236; --line-hi:#3d4247; --text:#e8e8e8; --dim:#8a9099; --on:#43d17a; --on-ink:#062; --off:#5a6068; --warn:#f0b840; --bad:#e85d5d; --accent:#4f8ef7;
+          color-scheme:dark; accent-color:var(--accent); }   /* dark native scrollbars, pickers; tinted checkboxes and sliders */
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font:14px/1.4 -apple-system, "Segoe UI", Helvetica, Arial, sans-serif; }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
+  #fps, .live, .clock, td.n, td.v { font-variant-numeric:tabular-nums; }   /* live numbers don't jitter sideways */
   .wrap { display:grid; grid-template-columns: minmax(320px, 640px) 1fr; gap:16px; padding:16px; min-height:100vh; }
   @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
   .left { position:sticky; top:16px; align-self:start; }
@@ -25,7 +28,7 @@
   .look svg { width:72px; height:72px; }
   .bar { display:flex; gap:12px; align-items:center; margin-top:10px; flex-wrap:wrap; }
   .pill { padding:4px 10px; border-radius:999px; background:var(--panel); border:1px solid var(--line); color:var(--dim); }
-  .pill.on { color:#0b1; border-color:var(--on); color:var(--on); }
+  .pill.on { border-color:var(--on); color:var(--on); }
   .pill.bad { color:var(--bad); border-color:var(--bad); }
   .err { display:flex; gap:8px; align-items:center; color:var(--bad); border:1px solid var(--bad); border-radius:6px; padding:4px 4px 4px 10px; margin:8px 0; }
   .err[hidden] { display:none; }
@@ -34,26 +37,38 @@
   .err.undo { color:var(--text); border-color:var(--accent); }
   .err.undo button { color:var(--accent); font-weight:600; }
   button { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 12px; cursor:pointer; font:inherit; }
+  button { transition:border-color .12s, color .12s, filter .12s; }
   button:hover { border-color:var(--accent); }
+  button:disabled { opacity:.35; cursor:default; border-color:var(--line); }
   button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.primary:hover { filter:brightness(1.12); }
+  button.soft { color:var(--accent); border-color:var(--accent); }   /* the main action on a repeated card: solid on every card is a wall of blue */
   button.danger:hover { border-color:var(--bad); color:var(--bad); }
+  input:hover, select:hover, textarea:hover { border-color:var(--line-hi); }
   .toggle { display:flex; align-items:center; gap:8px; cursor:pointer; user-select:none; }
   .toggle input { width:18px; height:18px; }
   .held { font-size:28px; font-weight:700; min-height:40px; margin-top:8px; letter-spacing:2px; }
-  .held span { display:inline-block; background:var(--on); color:#062; padding:2px 14px; border-radius:8px; margin-right:8px; }
+  .held span { display:inline-block; background:var(--on); color:var(--on-ink); padding:2px 14px; border-radius:8px; margin-right:8px; }
   .held.off span, .held span.held-back { background:var(--off); color:var(--text); text-decoration:line-through; }
   .held small { font-size:15px; font-weight:400; letter-spacing:0; color:var(--dim); }
   .keys { position:relative; padding:8px 20px; border-radius:8px; border:2px solid var(--off); color:var(--dim); font-size:18px; cursor:pointer; user-select:none; }
-  .keys.on { background:var(--on); border-color:var(--on); color:#062; font-weight:800; letter-spacing:1px; }
+  .keys.on { background:var(--on); border-color:var(--on); color:var(--on-ink); font-weight:800; letter-spacing:1px; }
   .keys:hover, .keys:has(input:focus-visible) { border-color:var(--accent); }
   .keys input { position:absolute; opacity:0; pointer-events:none; }
   h2 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--dim); margin:18px 0 8px; }
-  .pose { background:var(--panel); border:1px solid var(--line); border-left:6px solid var(--off); border-radius:8px; padding:10px 12px; margin-bottom:10px; }
+  h2 .small { text-transform:none; letter-spacing:0; font-weight:400; margin-left:6px; }
+  .help { max-width:90ch; margin:8px 0; }
+  .help p { margin:0 0 4px; }
+  .lookset { display:inline-flex; align-items:center; gap:8px; padding:4px 4px 4px 10px; border:1px solid var(--line); border-radius:8px; }
+  .lookset select { max-width:140px; padding:4px 6px; }
+  .lookset:has(#lookOn:not(:checked)) select { opacity:.5; }   /* still settable, but plainly not in use */
+  .bar .spacer { flex:1; }
+  .pose { background:var(--panel); border:1px solid var(--line); border-left:6px solid var(--off); border-radius:8px; padding:10px 12px; margin-bottom:10px; transition:border-left-color .15s; }
   .pose.active { border-left-color:var(--on); }
   .pose.disabled { opacity:.5; }
   .pose-head { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .pose-head input.name { flex:1; min-width:120px; font-weight:600; }
-  input, select { background:#0f1113; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; }
+  input, select { background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; }
   input.key { width:80px; text-align:center; font-family:ui-monospace, Menlo, monospace; }
   input.invalid { border-color:var(--bad); }
   input.hold, input.delay { width:52px; text-align:center; }
@@ -98,7 +113,7 @@
   table.feat td { padding:3px 6px; border-bottom:1px solid var(--line); }
   table.feat td.v { font-family:ui-monospace, Menlo, monospace; text-align:right; width:80px; white-space:nowrap; }
   table.feat td.b { width:120px; }
-  .meter { height:6px; background:#0f1113; border-radius:3px; overflow:hidden; }
+  .meter { height:6px; background:var(--field); border-radius:3px; overflow:hidden; }
   .meter i { display:block; height:100%; background:var(--accent); width:0; }
   details summary { cursor:pointer; color:var(--dim); }
   .capture { background:#17191c; border:1px solid var(--accent); border-radius:8px; padding:12px; margin:10px 0; }
@@ -130,7 +145,8 @@
   .fig .jogB { animation:jogB var(--dur) infinite steps(1); }
   .side { position:fixed; top:0; right:0; bottom:0; width:min(440px, 100vw); background:var(--bg); border-left:1px solid var(--line); box-shadow:-8px 0 24px rgba(0,0,0,.4); padding:16px; overflow-y:auto; transform:translateX(100%); transition:transform .2s; z-index:10; visibility:hidden; }
   .side.open { transform:none; visibility:visible; }
-  .side-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .side-head { display:flex; align-items:center; gap:8px; margin:-16px -16px 8px; padding:12px 16px; position:sticky; top:-16px; z-index:1;
+               background:var(--bg); border-bottom:1px solid var(--line); }   /* close stays in reach on a long scroll */
   .side-head h2 { margin:0; flex:1; }
   button.warn { border-color:var(--warn); color:var(--warn); }
   .clash { display:grid; grid-template-columns: 70px 1fr; gap:12px; align-items:center; background:var(--panel); border:1px solid var(--line); border-left:6px solid var(--warn); border-radius:8px; padding:8px 12px; margin-bottom:8px; }
@@ -148,17 +164,18 @@
   .preset { display:grid; grid-template-columns: 70px 1fr; gap:12px; align-items:start; border-left:6px solid var(--on); }
   .preset.untested { border-left-color:var(--warn); }
   .preset .fig svg { margin:0; }
-  .preset textarea { width:100%; margin-top:6px; background:#0f1113; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; resize:vertical; }
+  .preset textarea { width:100%; margin-top:6px; background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; resize:vertical; }
   .preset .bar { margin-top:6px; }
   .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; align-items:center; }
-  .tag { font-size:11px; padding:1px 6px; border-radius:4px; background:#0f1113; color:var(--dim); border:1px solid var(--line); }
+  .tag { font-size:11px; padding:1px 6px; border-radius:4px; background:var(--field); color:var(--dim); border:1px solid var(--line); }
   .preset p.notes { margin:6px 0 0; }
   .chip { display:inline-flex; align-items:center; gap:4px; font-size:12px; padding:2px 4px 2px 10px; border-radius:999px; border:1px solid var(--line); }
   .chip.untested { border-color:var(--warn); color:var(--warn); }
   .chip button { padding:0 6px; border:none; background:none; color:var(--dim); }
   .chip input.gk { width:52px; padding:0 4px; margin-left:4px; text-align:center; font-family:ui-monospace, Menlo, monospace; font-size:12px; }
-  .group textarea { width:100%; margin-top:6px; background:#0f1113; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:4px 8px; font:inherit; font-size:12px; resize:vertical; }
+  .group textarea { width:100%; margin-top:6px; background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:4px 8px; font:inherit; font-size:12px; resize:vertical; }
   .group p.small { margin:6px 0 0; }
+  .acts { display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }   /* a card's buttons wrap as one row, not one stray button */
   .loading { position:fixed; inset:0; z-index:30; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
   .loading[hidden] { display:none; }
   .loading .spin { width:36px; height:36px; border:4px solid var(--line); border-top-color:var(--accent); border-radius:50%; animation:spin .8s linear infinite; }
@@ -184,6 +201,9 @@
   .drill .setup label { display:flex; align-items:center; gap:8px; }
   .drill .setup input, .drill .setup select { width:80px; margin-left:auto; font-size:18px; }
   .drill .setup .u { width:2em; color:var(--dim); }
+  .drill .setup h2 { font-size:22px; color:var(--text); letter-spacing:0; text-transform:none; margin:0; }
+  .drill .setup p.small { margin:0 0 8px; font-size:14px; }
+  .drill .setup button.primary { margin-top:8px; padding:10px; font-size:18px; font-weight:600; }
   .drill.setup .setup { display:flex; }
   .drill.setup > :not(.drill-head):not(.setup) { display:none; }
   @keyframes hop { 0%, 60%, 100% { transform:translateY(0); } 30% { transform:translateY(var(--h)); } }
@@ -203,13 +223,18 @@
       <span class="pill" id="fps">0 fps</span>
       <label class="keys" id="keys" title="Send held keys to the focused game window"><input type="checkbox" id="send"><span>keys off</span></label>
       <label class="toggle small" title="Beep when tracking pauses (low double) and resumes (high), while keys are on: you can hear it with the game focused"><input type="checkbox" id="sound" checked>sound</label>
-      <label class="toggle small" title="Clap (or the pose picked next to this) to turn camera mode on and off. While it's on, the right mouse button is held (WoW's mouselook: your character turns with the camera) and your right hand steers the camera like a thumbstick, from a neutral spot at your waist, elbow bent. Game poses pause until you toggle it off again. Sent only while keys are on."><input type="checkbox" id="lookOn">camera mode</label>
-      <select id="lookToggle" class="small" title="What turns camera mode on and off: a clap, or one of your poses. A pose picked here never sends its key; tune it like any other pose (its delay stops it toggling by accident)."></select>
-      <select id="lookButton" class="small" title="What your right hand does in camera mode. Right click drag: WoW's mouselook, your character turns with the camera. Left click drag: the camera turns alone. Mouse move: moves the pointer, no button held, for clicking things with a mouse-button pose.">
-        <option value="right">right click drag</option><option value="left">left click drag</option><option value="none">mouse move</option></select>
       <span class="pill bad" id="untrusted" title="System Settings › Privacy &amp; Security › Accessibility" hidden>keys blocked: grant Accessibility to Movement</span>
+    </div>
+    <div class="bar">
+      <span class="lookset">
+      <label class="toggle small" title="Clap (or the pose picked next to this) to turn camera mode on and off. While it's on, the right mouse button is held (MMO mouselook: your character turns with the camera) and your right hand steers the camera like a thumbstick, from a neutral spot at your waist, elbow bent. Game poses pause until you toggle it off again. Sent only while keys are on."><input type="checkbox" id="lookOn">camera mode</label>
+      <select id="lookToggle" class="small" title="What turns camera mode on and off: a clap, or one of your poses. A pose picked here never sends its key; tune it like any other pose (its delay stops it toggling by accident)."></select>
+      <select id="lookButton" class="small" title="What your right hand does in camera mode. Right click drag: MMO mouselook, your character turns with the camera. Left click drag: the camera turns alone. Mouse move: moves the pointer, no button held, for clicking things with a mouse-button pose.">
+        <option value="right">right click drag</option><option value="left">left click drag</option><option value="none">mouse move</option></select>
+      </span>
       <button id="reset" title="Re-learn standing height for hip_drop / knee lifts">reset baselines</button>
-      <button id="quit" title="Stop the camera and exit the app">quit app</button>
+      <span class="spacer"></span>
+      <button class="danger" id="quit" title="Stop the camera and exit the app">quit app</button>
     </div>
     <div class="held" id="held"></div>
     <details>
@@ -230,8 +255,10 @@
       <button id="import">import</button>
       <input type="file" id="file" accept=".yaml,.yml" style="display:none">
     </div>
-    <p class="small">Edits save to <code>config.yaml</code> instantly. Export downloads it; import replaces all poses from a file.</p>
-    <p class="small">A pose holds its key while every condition is true. Green dot = condition true now. Units: ° = degrees, t = torso lengths (shoulders to hips), /s = per second. Drag a slider while doing the movement and watch the live number.</p>
+    <div class="help small">
+      <p>A pose holds its key while every condition is true; a green dot means that condition is true now. Drag a slider while doing the movement and watch the live number.</p>
+      <p>Units: ° degrees · t torso lengths (shoulders to hips) · /s per second. Edits save to <code>config.yaml</code> instantly; export downloads it, import replaces all poses from a file.</p>
+    </div>
     <div class="err" id="cfgErr" hidden><span></span><button title="dismiss">×</button></div>
     <div class="err undo" id="undoBar" hidden><span></span><button title="put the pose back">undo</button></div>
     <div id="poses"></div>
@@ -254,7 +281,7 @@
     <label>length <input id="drillMin" type="number" min="0.5" max="60" step="0.5"><span class="u">min</span></label>
     <label title="neutral this long (nothing firing) before the next pose">rest <input id="drillRest" type="number" min="0" max="30" step="0.5"><span class="u">s</span></label>
     <label title="a pose not hit in this long counts as a miss: to get into a hold, or between reps">time to hit <input id="drillHit" type="number" min="2" max="60" step="1"><span class="u">s</span></label>
-    <label title="poses you can stay in (chair, arm out, squat): hold them, or do them as reps (a squat each time you sink into it). Poses that need motion (jump, punch) are always reps; ones you keep going (jog) are kept up for the hold time.">positions <select id="drillHoldable"><option value="1">hold</option><option value="0">reps</option></select></label>
+    <label title="poses you can stay in (chair, arm out, squat): hold them, or do them as reps (a squat each time you sink into it). Poses that need motion (jump, punch) are always reps; ones you keep going (jog) are kept up for the hold time.">positions <select id="drillHoldable"><option value="1">hold</option><option value="0">reps</option></select><span class="u"></span></label>
     <label title="seconds to hold a position">hold <input id="drillHold" type="number" min="2" max="120" step="1"><span class="u">s</span></label>
     <label title="reps per prompt for movements">reps <input id="drillReps" type="number" min="1" max="50" step="1"><span class="u"></span></label>
     <button class="primary" id="drillStart">start</button>

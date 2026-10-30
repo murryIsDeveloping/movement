@@ -265,7 +265,7 @@ function renderLibrary() {
         ${ed ? `<input class="name" value="${esc(g.name)}" title="group name">` : `<b class="name">${esc(g.name)}</b>`}
         ${g.builtin ? '<span class="tag">built-in</span>' : ''}
         <span class="small">${g.presets.length} poses${untested ? `, ${untested} untested` : ''}</span>
-        <button class="load primary">load</button><button class="add">add</button><button class="learn" title="Go through each pose in this group one by one, learning it (loads the group first if it isn't active)">learn</button><button class="cl">clone</button>${ed ? '<button class="danger del">delete</button>' : ''}
+        <span class="acts"><button class="load soft">load</button><button class="add">add</button><button class="learn" title="Go through each pose in this group one by one, learning it (loads the group first if it isn't active)">learn</button><button class="cl">clone</button>${ed ? '<button class="danger del">delete</button>' : ''}</span>
       </div>
       ${ed ? `<textarea class="notes" rows="1" placeholder="notes: game, class, what each key does">${esc(g.notes)}</textarea>` : g.notes ? `<p class="small">${esc(g.notes)}</p>` : ''}
       <div class="chips">${g.presets.map(n => {
@@ -318,9 +318,9 @@ function renderLibrary() {
         <div class="chips">${member.map(g => `<span class="chip">${esc(g.name)}${editable(g) ? `<button data-g="${esc(g.name)}" title="remove from group">×</button>` : ''}</span>`).join('')}
           ${others.length ? `<select class="tog"><option value="">+ group…</option>${others.map(g => `<option>${esc(g.name)}</option>`).join('')}</select>` : ''}</div>
         <div class="bar">
-          <button class="use primary">use</button>${inUse.has(pr.name) ? '<span class="small">in active poses</span>' : ''}
+          <button class="use soft">use</button>${inUse.has(pr.name) ? '<span class="small">in active poses</span>' : ''}
           <button class="cl">clone</button>${!pr.builtin ? '<button class="danger del">delete</button>' : ''}
-          <span class="small">${pr.conditions.length} conditions${pr.delay ? `, delay ${pr.delay}s` : ''}${pr.hold ? `, hold ${pr.hold}s` : ''}</span>
+          <span class="small">${pr.conditions.length} condition${pr.conditions.length === 1 ? '' : 's'}${pr.delay ? `, delay ${pr.delay}s` : ''}${pr.hold ? `, hold ${pr.hold}s` : ''}</span>
         </div>
       </div>`;
     el.querySelector('.pick').onchange = e => { if (e.target.checked) picked.add(pr.name); else picked.delete(pr.name); renderLibrary(); };
