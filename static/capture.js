@@ -46,6 +46,7 @@ function startCapture(pi, slot) {
 function checkTrigger() {
   const tr = capture && capture.trigger;
   if (!tr) return;
+  tr.i = poses.findIndex((q, i) => i !== capture.pi && q.name === tr.name);   // by name: a delete, undo or move shifts indexes
   if (!(state[tr.i] || {}).active) { tr.seenOff = true; tr.since = null; return; }
   if (!tr.seenOff) return;
   tr.since = tr.since || performance.now();

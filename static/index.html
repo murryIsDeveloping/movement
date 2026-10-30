@@ -26,6 +26,8 @@
   .err[hidden] { display:none; }
   .err span { flex:1; }
   .err button { padding:0 8px; border:none; background:none; color:var(--bad); }
+  .err.undo { color:var(--text); border-color:var(--accent); }
+  .err.undo button { color:var(--accent); font-weight:600; }
   button { background:var(--panel); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 12px; cursor:pointer; font:inherit; }
   button:hover { border-color:var(--accent); }
   button.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -169,6 +171,7 @@
     <p class="small">Edits save to <code>config.yaml</code> instantly. Export downloads it; import replaces all poses from a file.</p>
     <p class="small">A pose holds its key while every condition is true. Green dot = condition true now. Values are in torso lengths or degrees; drag a slider while doing the movement and watch the live number.</p>
     <div class="err" id="cfgErr" hidden><span></span><button title="dismiss">×</button></div>
+    <div class="err undo" id="undoBar" hidden><span></span><button title="put the pose back">undo</button></div>
     <div id="poses"></div>
   </div>
 </div>
@@ -283,7 +286,7 @@ function connect() {
     // a rejected save clears pending via the error reply, so one that ends any other way was accepted
     if (pending && (incoming === pending || performance.now() - pendingAt > 2000)) { pending = null; cfgError(''); }
     const el = document.activeElement, typing = el && el.closest('#poses') && /^(INPUT|SELECT)$/.test(el.tagName);
-    if (!dirty && !pending && !typing && incoming !== JSON.stringify(poses)) { poses = m.poses; renderPoses(); }
+    if (!dirty && !pending && !typing && incoming !== JSON.stringify(poses)) { poses = m.poses; showUndo(null); renderPoses(); }
     if (sendWant === null || !!m.send_keys === sendWant || performance.now() - sendAt > 1000) { sendWant = null; showSend(!!m.send_keys); }
     document.getElementById('untrusted').hidden = !(m.send_keys && m.trusted === false);   // macOS only: always true elsewhere
     const sent = m.send_keys && m.trusted !== false, held = document.getElementById('held');
@@ -392,10 +395,7 @@ function renderPoses() {
     div.querySelector('.en').onchange = e => { p.enabled = e.target.checked; renderPoses(); scheduleSave(); };
     div.querySelector('.up').onclick = () => movePose(pi, -1);
     div.querySelector('.down').onclick = () => movePose(pi, 1);
-    div.querySelector('.del').onclick = () => {
-      if (capture && capture.pi === pi) endCapture(); else if (capture && capture.pi > pi) capture.pi -= 1;
-      poses.splice(pi, 1); renderPoses(); scheduleSave();
-    };
+    div.querySelector('.del').onclick = () => deletePose(pi);
     div.querySelector('.addc').onclick = () => { p.conditions.push({ feature: 'hip_drop', op: '>', value: 0.3 }); renderPoses(); scheduleSave(); };
     div.querySelector('.cap').onclick = () => startCapture(pi, div.querySelector('.capslot'));
     wirePresetControls(div, p);
@@ -417,6 +417,25 @@ function movePose(i, d) {
   if (capture) { if (capture.pi === i) capture.pi = j; else if (capture.pi === j) capture.pi = i; }
   renderPoses(); scheduleSave();
 }
+
+// Delete at once, with an undo bar for a few seconds. Only the latest delete can be undone: a second replaces the bar.
+const undoBar = document.getElementById('undoBar');
+let undone = null, undoTimer = null;   // { p, i }: the deleted pose and where it was
+function showUndo(u) {
+  undone = u; clearTimeout(undoTimer); undoBar.hidden = !u;
+  if (u) { undoBar.firstChild.textContent = `deleted "${u.p.name}"`; undoTimer = setTimeout(() => showUndo(null), 6000); }
+}
+function deletePose(pi) {
+  if (capture && capture.pi === pi) endCapture(); else if (capture && capture.pi > pi) capture.pi -= 1;
+  showUndo({ p: poses.splice(pi, 1)[0], i: pi }); renderPoses(); scheduleSave();
+}
+undoBar.querySelector('button').onclick = () => {
+  if (!undone) return;
+  const i = Math.min(undone.i, poses.length);   // the list may have shrunk since; a whole new list (import, load) clears the bar
+  poses.splice(i, 0, undone.p);
+  if (capture && capture.pi >= i) capture.pi += 1;
+  showUndo(null); renderPoses(); scheduleSave();
+};
 
 function renderCond(p, c, ci, refresh) {
   const [min, max, step] = rangeOf(c.feature);

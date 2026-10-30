@@ -11,7 +11,7 @@ Each file covers the problem, where it is in the code, how to reproduce it, the 
 | 03 | [Held keys look the same whether sent or not](03-send-keys-state-unclear.md) | small | done |
 | 04 | [No feedback while the game is focused](04-audio-cues-in-play.md) | small | done |
 | 05 | [The key field expects pynput names](05-key-capture-field.md) | small | done |
-| 06 | [Deleting a pose has no confirm or undo](06-pose-delete-undo.md) | small | open |
+| 06 | [Deleting a pose has no confirm or undo](06-pose-delete-undo.md) | small | done |
 | 07 | [First run starts from untuned defaults](07-first-run-defaults.md) | small | open |
 | 08 | [Pose cards are dense and jargon is unexplained](08-pose-card-density.md) | medium | open |
 | 09 | [The drill doesn't show send-keys state](09-drill-send-state.md) | small | open |

@@ -55,6 +55,7 @@ function usePresets(names, replace, keys = {}) {
   if (replace) {
     if (poses.length && !confirm(`Replace your ${poses.length} active poses with these ${add.length}?`)) return;
     if (capture) endCapture();
+    showUndo(null);   // undoing a delete from the old set would mix it into the new one
     poses.length = 0;
   }
   poses.push(...add);
