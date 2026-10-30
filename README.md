@@ -17,7 +17,7 @@ python -m venv .venv
 
 Output: `dist/Movement.app` (macOS) or `dist/Movement/Movement.exe` (Windows). Move it wherever you like; drag to Applications on mac.
 
-Config lives in `~/Library/Application Support/Movement/config.yaml` (mac) or `%APPDATA%\Movement\config.yaml` (Windows). Survives rebuilds.
+Config lives in `~/Library/Application Support/Movement/config.yaml` (mac) or `%APPDATA%\Movement\config.yaml` (Windows). Survives rebuilds. A new install starts with the poses of the built-in *wow hunter* group, linked to the library.
 
 ### macOS permissions (one-off)
 

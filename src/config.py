@@ -3,7 +3,7 @@ from pathlib import Path
 
 import yaml
 
-from src import paths
+from src import library, paths
 from src.keys import valid_key
 from src.rules import Pose
 
@@ -26,9 +26,24 @@ DEFAULT = {
 }
 
 
+FIRST_RUN_GROUP = "wow hunter"   # built-in group a new install starts from: all its presets are tested
+
+
+def first_run() -> dict:
+    """DEFAULT with the poses of FIRST_RUN_GROUP, linked to the library. Falls back to DEFAULT's own poses if
+    presets.yaml is missing, broken or no longer has that group, so a first launch never fails."""
+    try:
+        poses = library.group_poses(FIRST_RUN_GROUP)
+        if poses:
+            return {**DEFAULT, "poses": poses}
+    except Exception as e:
+        print(f"first run: can't load built-in group {FIRST_RUN_GROUP!r} ({e}), using the basic poses")
+    return DEFAULT
+
+
 def load(path: Path = CONFIG) -> dict:
     if not path.exists():
-        save(DEFAULT, path)
+        save(first_run(), path)
     with open(path) as f:
         cfg = yaml.safe_load(f) or {}
     merged = {**DEFAULT, **cfg}

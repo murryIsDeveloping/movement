@@ -3,14 +3,37 @@ import asyncio
 import yaml
 from aiohttp.test_utils import TestClient, TestServer
 
-from src import config
+from src import config, library
 from src.server import Hub, make_app
 
 
-def test_load_creates_default(tmp_path):
+def test_load_creates_default_from_library(tmp_path):
     path = tmp_path / "config.yaml"
-    assert config.load(path) == config.DEFAULT
-    assert path.exists()
+    cfg = config.load(path)
+    assert path.exists() and {k: v for k, v in cfg.items() if k != "poses"} == {k: v for k, v in config.DEFAULT.items() if k != "poses"}
+    lib = library.load(library.BUILTIN, tmp_path / "my_presets.yaml")
+    group = next(g for g in lib["groups"] if g["name"] == config.FIRST_RUN_GROUP)
+    presets = {p["name"]: p for p in lib["presets"]}
+    assert [p["preset"] for p in cfg["poses"]] == [p["name"] for p in cfg["poses"]] == group["presets"]
+    assert all(presets[p["preset"]]["status"] == "tested" for p in cfg["poses"])
+    assert cfg["poses"] == library.group_poses(config.FIRST_RUN_GROUP)   # the mapping itself is tested in test_library
+    assert len(config.poses_lenient(cfg)) == len(group["presets"])
+
+
+def test_first_run_falls_back_to_basic_poses(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(library, "BUILTIN", tmp_path / "missing.yaml")
+    assert config.load(tmp_path / "config.yaml") == config.DEFAULT
+    other = tmp_path / "presets.yaml"
+    other.write_text(yaml.safe_dump({"presets": [], "groups": [{"name": "renamed", "presets": []}]}))
+    monkeypatch.setattr(library, "BUILTIN", other)
+    assert config.first_run() == config.DEFAULT
+    assert "can't load built-in group 'wow hunter'" in capsys.readouterr().out
+
+
+def test_existing_config_keeps_its_poses(tmp_path):
+    path = tmp_path / "config.yaml"
+    path.write_text(yaml.safe_dump({"poses": [{"name": "a", "key": "w"}]}))
+    assert config.load(path)["poses"] == [{"name": "a", "key": "w"}]
 
 
 def test_load_merges_nested_defaults(tmp_path):

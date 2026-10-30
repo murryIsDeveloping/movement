@@ -87,6 +87,19 @@ def save(lib: dict, edit_builtins: bool, builtin: Path | None = None, user: Path
     return lib
 
 
+def group_poses(group: str, builtin: Path | None = None) -> list[dict]:
+    """A built-in group as active poses, linked to their presets: the same mapping as poseFromPreset in library.js.
+    KeyError if there's no such group, ValueError like validate."""
+    lib = validate(_read(builtin or BUILTIN))
+    g = next((g for g in lib["groups"] if g["name"] == group), None)
+    if g is None:
+        raise KeyError(f"no built-in group named {group!r}")
+    presets = {p["name"]: p for p in lib["presets"]}
+    return [{"name": m, "key": g["keys"].get(m) or presets[m]["key"],
+             **{k: presets[m][k] for k in ("conditions", "margin", "enabled", "hold", "delay")}, "preset": m}
+            for m in g["presets"]]
+
+
 def validate(lib: dict) -> dict:
     """Normalised copy, or ValueError: a bad pose, a duplicate name, an unknown status, a group naming a missing
     preset or binding a key pynput can't press, or a built-in group naming a user preset (built-ins must stand alone)."""

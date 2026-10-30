@@ -44,6 +44,18 @@ def test_validate_fills_defaults_and_drops_pose_link():
     assert "preset" not in p
 
 
+def test_group_poses_maps_like_pose_from_preset(tmp_path):
+    b = tmp_path / "presets.yaml"
+    b.write_text(yaml.safe_dump({"presets": [preset("arm", hold=0.3), preset("leg", key="x")],
+                                 "groups": [{"name": "g", "presets": ["arm", "leg"], "keys": {"arm": "1"}}]}))
+    arm, leg = library.group_poses("g", b)
+    assert arm == {"name": "arm", "key": "1", "conditions": ARM["conditions"], "margin": 0.1, "enabled": True,
+                   "hold": 0.3, "delay": 0.0, "preset": "arm"}
+    assert leg["key"] == "x" and leg["preset"] == "leg"
+    with pytest.raises(KeyError):
+        library.group_poses("nope", b)
+
+
 def test_user_cannot_change_builtins(files):
     b, u = files
     lib = library.load(b, u)
