@@ -144,6 +144,7 @@
       <span class="pill" id="body">no body</span>
       <span class="pill" id="fps">0 fps</span>
       <label class="keys" id="keys" title="Send held keys to the focused game window"><input type="checkbox" id="send"><span>keys off</span></label>
+      <label class="toggle small" title="Beep when tracking pauses (low double) and resumes (high), while keys are on: you can hear it with the game focused"><input type="checkbox" id="sound" checked>sound</label>
       <span class="pill bad" id="untrusted" title="System Settings › Privacy &amp; Security › Accessibility" hidden>keys blocked: grant Accessibility to Movement</span>
       <button id="reset" title="Re-learn standing height for hip_drop / knee lifts">reset baselines</button>
       <button id="quit" title="Stop the camera and exit the app">quit app</button>
@@ -217,6 +218,8 @@ function keyField(el, save, blankOk = false) {
 let dirty = false, saveTimer = null;
 let pending = null, pendingAt = 0;   // poses JSON just sent; server broadcasts lag a frame behind it
 let sendWant = null, sendAt = 0;     // send keys just clicked: same lag, so the button doesn't flick back for a tick
+const SOUND_KEY = 'movement.sound';
+let cued = null, cuedAt = 0;         // pause state last announced (null until the first broadcast), and when
 let ws;
 
 function connect() {
@@ -245,6 +248,7 @@ function connect() {
     held.classList.toggle('off', !sent);   // chips the game isn't getting must not look like presses
     held.innerHTML = (m.held || []).map(k => `<span>${k}</span>`).join('') + (!sent && m.held && m.held.length ? `<small>${m.send_keys ? 'blocked' : 'not sent'}</small>` : '');
     paused = m.paused ? (m.body ? m.missing : []) : null;   // the server debounces: a blip out of frame isn't a pause
+    pauseCue(!!m.paused, !!m.send_keys);
     const ok = !m.error && m.body && !paused;
     document.getElementById('body').textContent = m.error ? 'camera error: ' + m.error : !m.body ? 'no body' : paused ? 'paused: not fully in frame' : 'body tracked';
     document.getElementById('body').className = 'pill ' + (ok ? 'on' : 'bad');
@@ -273,11 +277,21 @@ function showSend(on) {
   document.getElementById('send').checked = on;
   const k = document.getElementById('keys'); k.classList.toggle('on', on); k.lastChild.textContent = on ? 'KEYS ON' : 'keys off';
 }
+// pause/resume beeps, so a stopped character can be heard with the game focused. At most one cue a second: a flapping pause announces only where it settles.
+function pauseCue(p, on) {
+  if (p === cued || performance.now() - cuedAt < 1000) return;
+  if (cued !== null && on && document.getElementById('sound').checked) { if (p) { beep(330, 120); beep(330, 120, 0.2); } else beep(990, 150); }
+  cued = p; cuedAt = performance.now();
+}
 function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 function pushConfig() { pending = JSON.stringify(poses); pendingAt = performance.now(); send({ type: 'config', config: { poses, send_keys: document.getElementById('send').checked } }); dirty = false; }
 function scheduleSave() { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(pushConfig, 300); scheduleClashes(); updatePresetBadges(); }
 
-document.getElementById('send').onchange = e => { sendWant = e.target.checked; sendAt = performance.now(); showSend(sendWant); pushConfig(); };
+const sound = document.getElementById('sound');
+try { sound.checked = localStorage.getItem(SOUND_KEY) !== '0'; } catch {}
+sound.onchange = () => { try { localStorage.setItem(SOUND_KEY, sound.checked ? '1' : '0'); } catch {} };
+// audio needs a user gesture: this click is it, and a started context keeps playing with the tab in the background
+document.getElementById('send').onchange = e => { try { audio = audio || new AudioContext(); } catch {} sendWant = e.target.checked; sendAt = performance.now(); showSend(sendWant); pushConfig(); };
 document.getElementById('import').onclick = () => document.getElementById('file').click();
 document.getElementById('file').onchange = async e => {
   const file = e.target.files[0]; if (!file) return;

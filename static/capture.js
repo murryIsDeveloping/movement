@@ -5,12 +5,13 @@ const COUNTDOWN = 3, RECORD = 4, TRIGGER_HOLD = 250;   // ms the trigger pose mu
 const TRIGGER_KEY = 'movement.captureTrigger';
 
 let audio = null;
-function beep(freq = 880, ms = 120) {
+// after: seconds from now, on the audio clock, which a hidden tab doesn't throttle the way it does setTimeout
+function beep(freq = 880, ms = 120, after = 0) {
   try {
-    const o = audio.createOscillator(), g = audio.createGain();
+    const o = audio.createOscillator(), g = audio.createGain(), t = audio.currentTime + after;
     o.frequency.value = freq; g.gain.value = 0.2;
     o.connect(g).connect(audio.destination);
-    o.start(); o.stop(audio.currentTime + ms / 1000);
+    o.start(t); o.stop(t + ms / 1000);
   } catch {}
 }
 

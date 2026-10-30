@@ -9,7 +9,7 @@ Each file covers the problem, where it is in the code, how to reproduce it, the 
 | 01 | [A bad key name crashes the camera loop](01-bad-key-crashes-camera.md) | small | done |
 | 02 | [Accessibility and rejected edits never reach the GUI](02-surface-server-errors.md) | small | done |
 | 03 | [Held keys look the same whether sent or not](03-send-keys-state-unclear.md) | small | done |
-| 04 | [No feedback while the game is focused](04-audio-cues-in-play.md) | small | open |
+| 04 | [No feedback while the game is focused](04-audio-cues-in-play.md) | small | done |
 | 05 | [The key field expects pynput names](05-key-capture-field.md) | small | open |
 | 06 | [Deleting a pose has no confirm or undo](06-pose-delete-undo.md) | small | open |
 | 07 | [First run starts from untuned defaults](07-first-run-defaults.md) | small | open |
