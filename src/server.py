@@ -2,6 +2,8 @@
 import asyncio
 import json
 import threading
+import time
+from collections import deque
 
 import yaml
 from aiohttp import web
@@ -10,6 +12,7 @@ from src import paths
 from src.rules import Pose
 
 STATIC = paths.resource_root() / "static"
+RECORDINGS = paths.config_path().parent / "recordings"
 
 
 class Hub:
@@ -20,6 +23,7 @@ class Hub:
         self.jpeg: bytes | None = None
         self.state: dict = {}
         self.sockets: set[web.WebSocketResponse] = set()
+        self.frames: deque[dict] = deque(maxlen=120)
         self.on_config = None  # callback(dict) from UI
         self.on_reset = None
         self.on_quit = None
@@ -30,6 +34,16 @@ class Hub:
             if jpeg is not None:
                 self.jpeg = jpeg
             self.state = state
+            if "t" in state:   # every camera frame, not just the broadcast ones, so drill recordings miss no spikes
+                self.frames.append({"t": round(state["t"], 3), "body": state["body"], "paused": state["paused"], "missing": state["missing"], "f": state["features"],
+                                    "on": [i for i, s in enumerate(state["state"]) if s["active"]]})
+
+    def take(self) -> str:
+        """The broadcast: latest state plus the frames since the last one."""
+        with self.lock:
+            payload = json.dumps({**self.state, "frames": list(self.frames)})
+            self.frames.clear()
+        return payload
 
 
 async def index(_):
@@ -74,6 +88,16 @@ async def config_put(request):
     return web.json_response({"ok": True, "poses": len(data["poses"])})
 
 
+async def recording_post(request):
+    """Saves a drill run (prompts, hits, every frame's features) for looking at later."""
+    data = await request.json()
+    RECORDINGS.mkdir(exist_ok=True)
+    path = RECORDINGS / f"drill-{time.strftime('%Y%m%d-%H%M%S')}.json"
+    path.write_text(json.dumps(data), encoding="utf-8")
+    print(f"recording saved: {path}")
+    return web.json_response({"ok": True, "path": str(path)})
+
+
 async def ws_handler(request):
     hub: Hub = request.app["hub"]
     ws = web.WebSocketResponse()
@@ -100,8 +124,7 @@ async def ws_handler(request):
 async def broadcaster(app):
     hub: Hub = app["hub"]
     while True:
-        with hub.lock:
-            payload = json.dumps(hub.state)
+        payload = hub.take()
         dead = []
         for ws in list(hub.sockets):
             try:
@@ -125,6 +148,7 @@ def make_app(hub: Hub) -> web.Application:
     app.router.add_get("/ws", ws_handler)
     app.router.add_get("/config", config_get)
     app.router.add_put("/config", config_put)
+    app.router.add_post("/recording", recording_post)
     app.router.add_static("/static", STATIC)
     app.on_startup.append(_start_bg)
     return app

@@ -18,6 +18,7 @@ paths.setup_frozen_env()
 from src.camera import Camera
 from src.features import FEATURE_INFO, FeatureEngine
 from src.keys import KeyState, pynput_keyboard
+from src.landmarks import FrameWatch
 from src.overlay import draw_skeleton
 from src.pose import PoseTracker
 from src.rules import RuleEngine
@@ -31,6 +32,7 @@ class App:
         self.lock = threading.Lock()
         self.rules = RuleEngine(cfgmod.poses_from(self.cfg))
         self.features = FeatureEngine()
+        self.frame_watch = FrameWatch(float(self.cfg.get("pause_after", 0.5)))
         self.keys = KeyState(pynput_keyboard())
         self.hub = Hub()
         self.hub.on_config = self.set_config
@@ -67,8 +69,13 @@ class App:
                     continue
                 t = time.monotonic() - t0
                 p = tracker.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), int(t * 1000))
-                feats = self.features.update(p, t) if p is not None else {}
+                # Out of frame for a while (walked up to the camera): no features, so no baselines learnt from a
+                # half-seen body, and every key up at once, holds included. A blip out of frame carries on as normal.
+                paused, missing = self.frame_watch.update(p, t)
+                feats = {} if paused or p is None else self.features.update(p, t)
                 with self.lock:
+                    if paused:
+                        self.rules.release()
                     state = self.rules.update(feats, t)
                     held = self.rules.keys()
                     poses = [pz.to_dict() for pz in self.rules.poses]
@@ -81,7 +88,7 @@ class App:
                 draw_skeleton(frame, p)
                 _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 self.hub.publish(jpeg.tobytes(), {
-                    "features": feats, "poses": poses, "state": state, "body": p is not None,
+                    "t": t, "features": feats, "poses": poses, "state": state, "body": p is not None, "paused": paused, "missing": missing,
                     "held": sorted(held), "send_keys": send, "fps": round(fps, 1), "feature_info": FEATURE_INFO,
                 })
         except Exception:

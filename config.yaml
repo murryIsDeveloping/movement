@@ -60,6 +60,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.25
+  delay: 0.35
 - name: stride right
   key: e
   conditions:
@@ -102,6 +103,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.25
+  delay: 0.35
 - name: stride left
   key: q
   conditions:
@@ -285,6 +287,9 @@ poses:
   - feature: right_arm_raise
     op: <
     value: 75
+  - feature: left_arm_raise
+    op: '>'
+    value: 28
   margin: 0.1
   enabled: true
   hold: 0.4
@@ -303,6 +308,9 @@ poses:
   - feature: left_arm_raise
     op: <
     value: 75
+  - feature: right_arm_raise
+    op: '>'
+    value: 28
   margin: 0.1
   enabled: true
   hold: 0.4

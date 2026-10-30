@@ -48,7 +48,9 @@ curl -L -o models/pose_landmarker_lite.task https://storage.googleapis.com/media
 - **send keys to game**: off by default. Tick when WoW is focused and you want keys delivered.
 - **+ new pose**: name, key, conditions (`feature > value`). All conditions true → key held. Dot goes green per condition live.
 - **hold**: seconds the key stays down after the pose ends. Turns a one-frame punch into a proper press and rides out brief tracking dropouts; costs that much delay on release. 0 = release immediately.
+- **delay**: seconds the pose must be held before its key goes down. Stops a pose firing while an arm passes through it on the way somewhere else (raising a hand overhead, a sideways punch ending arm-out); costs that much delay on press. 0 = press immediately.
 - **↑ / ↓**: reorder poses.
+- **drill**: full-screen test. Shows a random enabled pose in large text; strike it and a tick appears, then it says **neutral**: go back to standing with arms down. The next prompt comes once 3s have passed and nothing is firing (10s with no hit counts as a miss). Runs for a minute, then lists hits, average time, any other poses that fired while you were prompted, and any that fired on the way back to neutral. Esc stops it. Each run (even one stopped early) is saved to `recordings/drill-<date>-<time>.json` next to `config.yaml`: the poses, every prompt/hit/miss/wrong fire, and every frame's features and active poses.
 - **stick figure** on each pose: a body position that fires it, mirrored like the camera preview. Jump and jog animate.
 - **clashes (N)**: opens a side panel (Esc closes) listing pairs of poses on the same body part (same feature, or same arm) that can fire together, with the overlapping range and a figure of it. Poses on separate body parts (jog + arm raise) are combos and are not listed.
 - **capture**: 3s countdown, records 4s of movement, ranks which features moved most, suggests thresholds. Scrub frames, tick features, apply. Set **start** to another pose (e.g. jump) to arm it hands-free: walk back into position, do that pose, and the countdown begins. Beeps mark each step.
@@ -56,6 +58,8 @@ curl -L -o models/pose_landmarker_lite.task https://storage.googleapis.com/media
 - **export / import**: config.yaml download and upload.
 
 Stand 2–3 m back, full body in frame, plain background, even light.
+
+**Paused: not fully in frame**: if any joint the poses read (nose, shoulders, elbows, wrists, hips, knees) is off the edge of the picture or hidden for half a second straight (`pause_after` in `config.yaml`), every key is released and nothing fires until you're back in full view. The banner names the joints that are out. Shorter blips, like your head leaving the top of the picture mid-jump, don't pause. Feet may be cut off. Arms raised overhead count too: if hands-up poses pause, step back. The drill's clock stops while paused.
 
 ## Tests
 

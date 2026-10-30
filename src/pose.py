@@ -1,4 +1,4 @@
-"""MediaPipe Pose Landmarker wrapper. Returns (33, 3) array or None."""
+"""MediaPipe Pose Landmarker wrapper. Returns (33, 4) array of x, y, z, visibility, or None."""
 from pathlib import Path
 
 import mediapipe as mp
@@ -29,7 +29,7 @@ class PoseTracker:
         if not res.pose_landmarks:
             return None
         lms = res.pose_landmarks[0]
-        p = np.array([(l.x, l.y, l.z) for l in lms], dtype=np.float64)
+        p = np.array([(l.x, l.y, l.z, l.visibility) for l in lms], dtype=np.float64)
         p[:, 0] = 1.0 - p[:, 0]
         return p
 

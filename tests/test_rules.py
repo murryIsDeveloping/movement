@@ -106,6 +106,41 @@ def test_hold_bridges_a_brief_dropout():
     assert r.keys() == set()
 
 
+def test_delay_ignores_an_arm_passing_through():
+    r = RuleEngine([Pose("right", "d", [Condition("right_arm_raise", ">", 76)], delay=0.3)])
+    r.update({"right_arm_raise": 90}, 1.0)
+    r.update({"right_arm_raise": 90}, 1.2)
+    assert r.keys() == set()
+    r.update({"right_arm_raise": 20}, 1.25)    # dropped before 0.3s: the next try counts from scratch
+    r.update({"right_arm_raise": 90}, 1.4)
+    r.update({"right_arm_raise": 90}, 1.6)
+    assert r.keys() == set()
+
+
+def test_delay_fires_once_held_and_stays_without_restarting():
+    r = RuleEngine([Pose("right", "d", [Condition("right_arm_raise", ">", 76)], delay=0.3)])
+    r.update({"right_arm_raise": 90}, 1.0)
+    r.update({"right_arm_raise": 90}, 1.3)
+    assert r.keys() == {"d"}
+    r.update({"right_arm_raise": 90}, 1.35)
+    assert r.keys() == {"d"}
+    r.update({"right_arm_raise": 20}, 1.4)
+    assert r.keys() == set()
+
+
+def test_roundtrip_dict_with_delay():
+    p = Pose("x", "q", [Condition("lean", "<", -0.3)], hold=0.2, delay=0.35)
+    assert Pose.from_dict(p.to_dict()) == p
+
+
+def test_release_drops_held_keys_at_once():
+    r = RuleEngine([Pose("punch", "n", [Condition("right_punch", ">", 500)], hold=0.4)])
+    r.update({"right_punch": 800}, 1.0)
+    r.release()
+    r.update({}, 1.05)
+    assert r.keys() == set()
+
+
 def test_no_hold_releases_next_frame():
     r = RuleEngine([Pose("p", "a", [Condition("lean", ">", 0.2)])])
     r.update({"lean": 0.5}, 1.0)

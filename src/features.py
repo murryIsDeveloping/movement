@@ -8,7 +8,7 @@ from src.landmarks import L
 
 # name -> (description, unit) shown in the GUI
 FEATURES = {
-    "hip_rise":         ("Hips moved up within the last 0.4s (jump)", "torso"),
+    "hip_rise":         ("Hips above standing height, risen within the last 0.4s (jump)", "torso"),
     "hip_drop":         ("Hips below standing height (squat)", "torso"),
     "left_knee_lift":   ("Left knee raised from standing", "torso"),
     "right_knee_lift":  ("Right knee raised from standing", "torso"),
@@ -41,6 +41,10 @@ UNIT_RANGES = {"deg": (0, 180, 1), "torso": (-2, 2, 0.01), "steps/s": (0, 5, 0.1
 FEATURE_INFO = {k: {"desc": d, "unit": u, "range": UNIT_RANGES[u]} for k, (d, u) in FEATURES.items()}
 
 
+MIN_STEP_GAP = 0.15   # seconds; real jogging is ~0.3s a step
+STILL_HIPS = 0.05     # torso; hips moving less than this over rise_window count as still
+CROUCHED = 0.25       # torso below standing height: a squat, not a posture shift
+
 def _angle(a, b, c) -> float:
     """Angle at b in degrees."""
     v1, v2 = a - b, c - b
@@ -62,11 +66,11 @@ class _Baseline:
         self.rate = rate
         self.v = None
 
-    def update(self, x: float) -> float:
+    def update(self, x: float, rate: float | None = None) -> float:
         if self.v is None or x > self.v:
             self.v = x
         else:
-            self.v += (x - self.v) * self.rate
+            self.v += (x - self.v) * (self.rate if rate is None else rate)
         return self.v
 
 
@@ -97,13 +101,24 @@ class FeatureEngine:
 
         f: dict[str, float] = {}
 
-        # vertical hip motion
+        # vertical hip motion, against standing height. Standing height only updates while the hips are still,
+        # so a jump's peak doesn't become the new "standing" (which made standing after it read as a squat), and
+        # standing up out of a squat only gets back to standing height, so it isn't a jump.
         hy = float(hips[1])
         self.hip_hist.append((t, hy))
         while self.hip_hist and t - self.hip_hist[0][0] > self.rise_window:
             self.hip_hist.popleft()
-        f["hip_rise"] = u(max(h[1] for h in self.hip_hist) - hy)
-        f["hip_drop"] = self._hip_drop(hy, torso)
+        # Drifting down follows small camera or posture shifts; it crawls in a held squat so the squat doesn't
+        # fade and standing up from it doesn't rise above a sunken baseline.
+        ys = [h[1] for h in self.hip_hist]
+        if self.hip_base.v is None or u(max(ys) - min(ys)) < STILL_HIPS:
+            crouched = self.hip_base.v is not None and u(hy + self.hip_base.v) > CROUCHED
+            self.hip_base.update(-hy, 0.001 if crouched else None)   # y is down: the baseline tracks the highest hips
+        stand = -self.hip_base.v
+        # a jump is above standing height AND a fast rise: walking back from the camera creeps above a baseline
+        # that can't update while moving, but slowly
+        f["hip_rise"] = max(0.0, min(u(stand - hy), u(max(ys) - hy)))
+        f["hip_drop"] = max(0.0, u(hy - stand))
 
         # knees
         for side, knee, hip in (("left", L.LEFT_KNEE, L.LEFT_HIP), ("right", L.RIGHT_KNEE, L.RIGHT_HIP)):
@@ -112,7 +127,9 @@ class FeatureEngine:
             lift = u(base - rel)
             f[f"{side}_knee_lift"] = lift
             up = lift > 0.15
-            if up and not self.knee_up[knee] and self.last_leg != knee:
+            # a squat lifts both knees a few hundredths of a second apart: too quick to be a step
+            quick = bool(self.steps) and t - self.steps[-1] < MIN_STEP_GAP
+            if up and not self.knee_up[knee] and self.last_leg != knee and not quick:
                 self.steps.append(t)
                 self.last_leg = knee
             self.knee_up[knee] = up
@@ -150,9 +167,3 @@ class FeatureEngine:
         f["lean"] = u(shoulders[0] - hips[0])
         f["head_tilt"] = u(xy[L.NOSE, 0] - shoulders[0])
         return {k: round(v, 3) for k, v in f.items()}
-
-    def _hip_drop(self, hy: float, torso: float) -> float:
-        # Baseline tracks the highest (smallest y) hip position; drop is how far below it we are.
-        inv = -hy
-        base = self.hip_base.update(inv)
-        return (base - inv) / torso

@@ -76,6 +76,41 @@ def test_hip_rise_on_jump():
     assert f["hip_rise"] > 0.25
 
 
+def hips_at(dy):
+    """Standing with the whole upper body shifted by dy (+ = down), like a squat or a jump."""
+    p = standing(); p[[L.NOSE, L.LEFT_SHOULDER, L.RIGHT_SHOULDER, L.LEFT_ELBOW, L.RIGHT_ELBOW,
+                       L.LEFT_WRIST, L.RIGHT_WRIST, L.LEFT_HIP, L.RIGHT_HIP], 1] += dy
+    return p
+
+
+def test_standing_after_a_jump_is_not_a_squat():
+    # the jump's peak used to become "standing height", so landing read as a deep squat
+    e = FeatureEngine()
+    run(e, still())
+    jump = [0.04, 0.0, -0.08, -0.16, -0.2, -0.16, -0.08, 0.0, 0.03, 0.0]   # dip, up, down, absorb
+    peak = max(e.update(hips_at(dy), 1.0 + i / 30)["hip_rise"] for i, dy in enumerate(jump))
+    assert peak > 0.6
+    f = run(e, [(1.4 + i / 30, standing()) for i in range(30)])
+    assert f["hip_drop"] < 0.05
+
+
+def test_standing_up_from_a_squat_is_not_a_jump():
+    e = FeatureEngine()
+    run(e, still())
+    down = [(1.0 + i / 30, hips_at(0.15 * min(i, 10) / 10)) for i in range(150)]   # squat, hold 5s
+    assert run(e, down)["hip_drop"] > 0.5
+    up = [(6.0 + i / 30, hips_at(0.15 * max(0, 6 - i) / 6)) for i in range(20)]   # stand up quickly
+    assert max(e.update(p, t)["hip_rise"] for t, p in up) < 0.1
+
+
+def test_walking_back_from_the_camera_is_not_a_jump():
+    # hips creep up the image over 2s while bobbing with each step, so standing height can't update
+    e = FeatureEngine()
+    run(e, still())
+    walk = [(1.0 + i / 30, hips_at(-0.1 * i / 60 + 0.02 * math.sin(i / 30 * 2 * math.pi * 2))) for i in range(60)]
+    assert max(e.update(p, t)["hip_rise"] for t, p in walk) < 0.32
+
+
 def test_knee_lift():
     e = FeatureEngine()
     run(e, still())
@@ -97,6 +132,20 @@ def test_step_cadence_when_jogging():
         frames.append((t, p))
     f = run(e, frames)
     assert f["step_cadence"] > 1.5
+
+
+def test_squat_is_not_a_step():
+    # both knees lift two frames apart going down into a squat, which used to read as 16 steps/s
+    e = FeatureEngine()
+    run(e, still())
+    f = None
+    for i in range(1, 30):
+        p = standing(); t = 1.0 + i / 30
+        p[L.LEFT_HIP, 1] += min(i, 6) * 0.025; p[L.RIGHT_HIP, 1] += min(i, 6) * 0.025
+        if i < 3:   # right knee lags: it drops with the hip at first, so it reads as not lifted yet
+            p[L.RIGHT_KNEE, 1] += min(i, 6) * 0.025
+        f = e.update(p, t)
+    assert f["step_cadence"] == 0
 
 
 def test_wrist_velocity_on_swipe():

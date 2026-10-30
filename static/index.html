@@ -12,6 +12,11 @@
   @media (max-width: 900px) { .wrap { grid-template-columns: 1fr; } }
   .left { position:sticky; top:16px; align-self:start; }
   img#cam { width:100%; border-radius:8px; background:#000; display:block; }
+  .camwrap { position:relative; }
+  .paused { position:absolute; inset:0; display:none; flex-direction:column; align-items:center; justify-content:center; text-align:center;
+            background:rgba(20,22,24,.7); border-radius:8px; color:var(--warn); font-size:28px; font-weight:800; padding:12px; }
+  .paused.on { display:flex; }
+  .paused small { font-size:15px; font-weight:400; color:var(--text); margin-top:6px; }
   .bar { display:flex; gap:12px; align-items:center; margin-top:10px; flex-wrap:wrap; }
   .pill { padding:4px 10px; border-radius:999px; background:var(--panel); border:1px solid var(--line); color:var(--dim); }
   .pill.on { color:#0b1; border-color:var(--on); color:var(--on); }
@@ -32,7 +37,7 @@
   .pose-head input.name { flex:1; min-width:120px; font-weight:600; }
   input, select { background:#0f1113; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; }
   input.key { width:80px; text-align:center; font-family:ui-monospace, Menlo, monospace; }
-  input.hold { width:64px; text-align:center; }
+  input.hold, input.delay { width:64px; text-align:center; }
   .cond { display:grid; grid-template-columns: 10px 1fr auto 70px 1fr 90px auto; gap:8px; align-items:center; margin-top:8px; }
   .cond .dot { width:10px; height:10px; border-radius:50%; background:var(--off); }
   .cond.ok .dot { background:var(--on); }
@@ -83,6 +88,16 @@
   .clash { display:grid; grid-template-columns: 70px 1fr; gap:12px; align-items:center; background:var(--panel); border:1px solid var(--line); border-left:6px solid var(--warn); border-radius:8px; padding:8px 12px; margin-bottom:8px; }
   .clash .fig svg { margin:0; }
   .clash code { color:var(--warn); }
+  .drill { position:fixed; inset:0; background:var(--bg); z-index:20; display:none; flex-direction:column; align-items:center; padding:16px; gap:8px; overflow-y:auto; }
+  .drill.open { display:flex; }
+  .drill-head { display:flex; width:100%; align-items:center; gap:8px; }
+  .drill-head .clock { flex:1; font-size:22px; font-family:ui-monospace, Menlo, monospace; color:var(--dim); }
+  .drill img { width:min(480px, 100%); border-radius:8px; background:#000; }
+  .drill .big { font-size:clamp(48px, 12vw, 140px); font-weight:800; line-height:1.1; text-align:center; }
+  .drill .big.ok { color:var(--on); }
+  .drill .big.bad { color:var(--bad); }
+  .drill .sub { font-size:22px; color:var(--dim); text-align:center; min-height:1.4em; }
+  .drill .results { width:min(640px, 100%); }
   @keyframes hop { 0%, 60%, 100% { transform:translateY(0); } 30% { transform:translateY(var(--h)); } }
   @keyframes jogA { 0% { opacity:1; } 50% { opacity:0; } }
   @keyframes jogB { 0% { opacity:0; } 50% { opacity:1; } }
@@ -91,7 +106,7 @@
 <body>
 <div class="wrap">
   <div class="left">
-    <img id="cam" src="/stream" alt="camera">
+    <div class="camwrap"><img id="cam" src="/stream" alt="camera"><div class="paused" id="paused"></div></div>
     <div class="bar">
       <span class="pill" id="body">no body</span>
       <span class="pill" id="fps">0 fps</span>
@@ -108,6 +123,7 @@
   <div class="right">
     <div class="bar" style="margin-top:0">
       <h2 style="margin:0; flex:1">Poses</h2>
+      <button id="drillBtn" title="Test yourself: prompts a random pose every few seconds for a minute and scores it">drill</button>
       <button id="clashBtn" title="Poses on the same body part that can fire together">clashes</button>
       <button class="primary" id="add">+ new pose</button>
       <a href="/config" download="movement-config.yaml"><button>export</button></a>
@@ -123,14 +139,23 @@
   <div class="side-head"><h2>Clashes</h2><button id="clashClose" title="close (Esc)">×</button></div>
   <div id="clashes"></div>
 </aside>
+<div class="drill" id="drill">
+  <div class="drill-head"><span class="clock"></span><button id="drillClose" title="stop (Esc)">×</button></div>
+  <div class="big"></div>
+  <div class="sub"></div>
+  <img alt="camera">
+  <div class="results"></div>
+</div>
 
 <script src="/static/figure.js"></script>
 <script src="/static/capture.js"></script>
+<script src="/static/drill.js"></script>
 <script>
 let poses = [];          // local editable copy
 let info = {};           // feature_info
 let live = {};           // latest features
 let state = [];          // pose states, by position in poses
+let paused = null;       // null while fully in frame; else the joints out of frame ([] = no body at all)
 const rangeOf = f => (info[f] || {}).range || [-2, 2, 0.01];   // [min, max, step], from UNIT_RANGES in src/features.py
 const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
 let dirty = false, saveTimer = null;
@@ -143,6 +168,7 @@ function connect() {
     const m = JSON.parse(e.data);
     live = m.features || {}; state = m.state || [];
     if (capture && capture.recording && m.body) capture.frames.push({ t: performance.now(), f: live });
+    drillFrame(m);
     checkTrigger();
     if (!Object.keys(info).length) { info = m.feature_info || {}; }
     // Take the server's poses only when they're a real outside change (import, another tab): not stale
@@ -152,8 +178,12 @@ function connect() {
     const el = document.activeElement, typing = el && el.closest('#poses') && /^(INPUT|SELECT)$/.test(el.tagName);
     if (!dirty && !pending && !typing && incoming !== JSON.stringify(poses)) { poses = m.poses; renderPoses(); }
     document.getElementById('send').checked = !!m.send_keys;
-    document.getElementById('body').textContent = m.error ? 'camera error: ' + m.error : m.body ? 'body tracked' : 'no body';
-    document.getElementById('body').className = 'pill ' + (m.body ? 'on' : 'bad');
+    paused = m.paused ? (m.body ? m.missing : []) : null;   // the server debounces: a blip out of frame isn't a pause
+    document.getElementById('body').textContent = m.error ? 'camera error: ' + m.error : paused ? (m.body ? 'paused: not fully in frame' : 'no body') : 'body tracked';
+    document.getElementById('body').className = 'pill ' + (paused ? 'bad' : 'on');
+    const pz = document.getElementById('paused');
+    pz.classList.toggle('on', !!paused);
+    if (paused) pz.innerHTML = pausedText();
     document.getElementById('fps').textContent = `${m.fps} fps`;
     document.getElementById('held').innerHTML = (m.held || []).map(k => `<span>${k}</span>`).join('');
     updateLive();
@@ -161,6 +191,12 @@ function connect() {
   ws.onclose = () => setTimeout(connect, 1000);
 }
 connect();
+
+// shown over the camera, here and in the drill, while nothing can fire
+function pausedText() {
+  return paused.length ? `Paused: not fully in frame<small>out of frame: ${paused.map(esc).join(', ')}</small>`
+                       : 'Paused: no body<small>step into view</small>';
+}
 
 function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 function pushConfig() { pending = JSON.stringify(poses); pendingAt = performance.now(); send({ type: 'config', config: { poses, send_keys: document.getElementById('send').checked } }); dirty = false; }
@@ -178,11 +214,13 @@ document.getElementById('file').onchange = async e => {
 const clashPanel = document.getElementById('clashPanel');
 document.getElementById('clashBtn').onclick = () => clashPanel.classList.toggle('open');
 document.getElementById('clashClose').onclick = () => clashPanel.classList.remove('open');
-document.addEventListener('keydown', e => { if (e.key === 'Escape') clashPanel.classList.remove('open'); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { clashPanel.classList.remove('open'); endDrill(); } });
+document.getElementById('drillBtn').onclick = startDrill;
+document.getElementById('drillClose').onclick = endDrill;
 document.getElementById('reset').onclick =() => send({ type: 'reset_baselines' });
 document.getElementById('quit').onclick = () => { send({ type: 'quit' }); document.body.innerHTML = '<h1 style="padding:2rem">Movement stopped. Close this tab.</h1>'; };
 document.getElementById('add').onclick = () => {
-  poses.push({ name: `pose ${poses.length + 1}`, key: '1', conditions: [{ feature: 'right_arm_raise', op: '>', value: 90 }], margin: 0.1, enabled: true, hold: 0 });
+  poses.push({ name: `pose ${poses.length + 1}`, key: '1', conditions: [{ feature: 'right_arm_raise', op: '>', value: 90 }], margin: 0.1, enabled: true, hold: 0, delay: 0 });
   renderPoses(); scheduleSave();
 };
 
@@ -201,6 +239,7 @@ function renderPoses() {
         <input class="name" value="${esc(p.name)}" title="pose name">
         <span class="small">key</span><input class="key" value="${esc(p.key)}" title="pynput key name: a, 1, space, shift, f1 ...">
         <span class="small">hold</span><input class="hold" type="number" min="0" step="0.05" value="${p.hold ?? 0}" title="seconds the key stays down after the pose ends: turns a quick punch into a proper press, and rides out brief tracking dropouts">
+        <span class="small">delay</span><input class="delay" type="number" min="0" step="0.05" value="${p.delay ?? 0}" title="seconds the pose must be held before the key goes down: stops it firing while an arm passes through on the way to another pose">
         <label class="toggle small"><input type="checkbox" class="en" ${p.enabled !== false ? 'checked' : ''}> enabled</label>
         <button class="addc">+ condition</button>
         <button class="cap" title="Record the movement and pick conditions from a frame">capture</button>
@@ -212,6 +251,7 @@ function renderPoses() {
     div.querySelector('.name').oninput = e => { p.name = e.target.value; scheduleSave(); };
     div.querySelector('.key').oninput = e => { p.key = e.target.value; scheduleSave(); };
     div.querySelector('.hold').oninput = e => { p.hold = Math.max(0, parseFloat(e.target.value) || 0); scheduleSave(); };
+    div.querySelector('.delay').oninput = e => { p.delay = Math.max(0, parseFloat(e.target.value) || 0); scheduleSave(); };
     div.querySelector('.en').onchange = e => { p.enabled = e.target.checked; renderPoses(); scheduleSave(); };
     div.querySelector('.up').onclick = () => movePose(pi, -1);
     div.querySelector('.down').onclick = () => movePose(pi, 1);
