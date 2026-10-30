@@ -1,12 +1,15 @@
 // Loaded before the main script in index.html. Uses its globals (poses, state, esc) and capture.js's beep at call time.
 // ---------- drill: full-screen prompts for a minute, scores each pose ----------
 let drill = null;
+let sendBefore = null;   // send keys as it was before the drill turned it off; null when no drill
 const DRILL_READY = 3, DRILL_LENGTH = 60, DRILL_REST = 3, DRILL_TIMEOUT = 10, DRILL_TICK_SHOW = 1;   // seconds
 
 function startDrill() {
   const pool = poses.map((p, i) => i).filter(i => poses[i].enabled !== false && poses[i].conditions.length);
-  if (!pool.length) { alert('no enabled poses to drill'); return; }
+  if (!pool.length) { restoreSend(); alert('no enabled poses to drill'); return; }   // "again" after the poses went
   try { audio = audio || new AudioContext(); } catch {}
+  // the overlay has the focus, so a pose's key would land in this page (space scrolls it). "again" keeps the first value.
+  if (sendBefore === null) { sendBefore = document.getElementById('send').checked; if (sendBefore) setSend(false); }
   const el = document.getElementById('drill');
   el.querySelector('img').src = '/stream';
   el.classList.add('open');
@@ -37,13 +40,20 @@ function saveDrill() {
     .catch(() => {});
 }
 
-function endDrill() {
+function endDrill(again = false) {
   if (!drill) return;
   saveDrill();   // stopped early: keep what was done
+  if (!again) restoreSend();
   clearInterval(drill.timer);
   drill.el.classList.remove('open');
   drill.el.querySelector('img').removeAttribute('src');   // closes the second MJPEG stream
   drill = null;
+}
+
+// back on only if it's still off: another tab may have turned it on meanwhile. A reload mid-drill leaves it off.
+function restoreSend() {
+  if (sendBefore && !document.getElementById('send').checked) setSend(true);
+  sendBefore = null;
 }
 
 function drillPrompt(now) {
@@ -149,6 +159,6 @@ function renderDrillResults() {
     <div class="bar" style="justify-content:center"><button class="primary again">again</button><button class="close">close</button></div>
     <p class="small saved" style="text-align:center"></p>`;
   saveDrill();
-  el.querySelector('.again').onclick = () => { endDrill(); startDrill(); };
-  el.querySelector('.close').onclick = endDrill;
+  el.querySelector('.again').onclick = () => { endDrill(true); startDrill(); };
+  el.querySelector('.close').onclick = () => endDrill();
 }

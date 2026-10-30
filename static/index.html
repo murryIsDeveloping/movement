@@ -213,7 +213,7 @@
   <div id="library"></div>
 </aside>
 <div class="drill" id="drill">
-  <div class="drill-head"><span class="clock"></span><button id="drillClose" title="stop (Esc)">×</button></div>
+  <div class="drill-head"><span class="clock"></span><span class="pill" id="drillKeys" title="Turned off for the drill, so poses don't type into this page. Set back when the drill ends.">keys off</span><button id="drillClose" title="stop (Esc)">×</button></div>
   <div class="big"></div>
   <div class="sub"></div>
   <img alt="camera">
@@ -351,7 +351,10 @@ cfgErr.querySelector('button').onclick = () => cfgError('');
 function showSend(on) {
   document.getElementById('send').checked = on;
   const k = document.getElementById('keys'); k.classList.toggle('on', on); k.lastChild.textContent = on ? 'KEYS ON' : 'keys off';
+  const d = document.getElementById('drillKeys'); d.classList.toggle('on', on); d.textContent = on ? 'keys on' : 'keys off';
 }
+// sendWant: our own change wins over the broadcasts still in flight from before it
+function setSend(on) { sendWant = on; sendAt = performance.now(); showSend(on); pushConfig(); }
 // pause/resume beeps, so a stopped character can be heard with the game focused. At most one cue a second: a flapping pause announces only where it settles.
 function pauseCue(p, on) {
   if (p === cued || performance.now() - cuedAt < 1000) return;
@@ -366,7 +369,7 @@ const sound = document.getElementById('sound');
 try { sound.checked = localStorage.getItem(SOUND_KEY) !== '0'; } catch {}
 sound.onchange = () => { try { localStorage.setItem(SOUND_KEY, sound.checked ? '1' : '0'); } catch {} };
 // audio needs a user gesture: this click is it, and a started context keeps playing with the tab in the background
-document.getElementById('send').onchange = e => { try { audio = audio || new AudioContext(); } catch {} sendWant = e.target.checked; sendAt = performance.now(); showSend(sendWant); pushConfig(); };
+document.getElementById('send').onchange = e => { try { audio = audio || new AudioContext(); } catch {} setSend(e.target.checked); };
 document.getElementById('import').onclick = () => document.getElementById('file').click();
 document.getElementById('file').onchange = async e => {
   const file = e.target.files[0]; if (!file) return;
@@ -383,7 +386,7 @@ document.getElementById('libBtn').onclick = () => { clashPanel.classList.remove(
 document.getElementById('libClose').onclick = () => libPanel.classList.remove('open');
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { clashPanel.classList.remove('open'); libPanel.classList.remove('open'); endDrill(); } });
 document.getElementById('drillBtn').onclick = startDrill;
-document.getElementById('drillClose').onclick = endDrill;
+document.getElementById('drillClose').onclick = () => endDrill();
 document.getElementById('reset').onclick =() => send({ type: 'reset_baselines' });
 document.getElementById('quit').onclick = () => { send({ type: 'quit' }); document.body.innerHTML = '<h1 style="padding:2rem">Movement stopped. Close this tab.</h1>'; };
 document.getElementById('add').onclick = () => {
