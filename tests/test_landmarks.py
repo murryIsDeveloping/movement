@@ -51,3 +51,15 @@ def test_losing_the_body_pauses_after_the_same_wait():
     w.update(None, 1.0)
     assert w.update(None, 1.3) == (False, [])
     assert w.update(None, 1.6) == (True, [])
+
+
+def test_resumed_only_on_the_frame_a_pause_ends():
+    w = FrameWatch(after=0.5)
+    inside = with_visibility(standing())
+    w.update(None, 1.0)
+    w.update(None, 1.6)
+    assert w.paused and not w.resumed
+    w.update(inside, 1.7)
+    assert w.resumed and not w.paused
+    w.update(inside, 1.8)
+    assert not w.resumed

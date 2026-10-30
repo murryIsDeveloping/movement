@@ -29,11 +29,11 @@ function drillEvent(type, pose, extra = {}) { drill.rec.events.push({ t: drill.c
 
 function saveDrill() {
   const d = drill;
-  if (d.saved || !d.results.length) return;
+  if (d.saved || !d.rec.frames.length) return;   // no frames: the packaged app (no recording) or nothing happened
   d.saved = true;
   d.rec.results = d.results;
   fetch('/recording', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d.rec) })
-    .then(r => r.json()).then(j => { const s = d.el.querySelector('.saved'); if (s) s.textContent = 'saved ' + j.path; })
+    .then(r => r.ok ? r.json() : null).then(j => { const s = d.el.querySelector('.saved'); if (s && j) s.textContent = 'saved ' + j.path; })
     .catch(() => {});
 }
 

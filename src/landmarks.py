@@ -67,6 +67,8 @@ class FrameWatch:
     def __init__(self, after: float = 0.5):
         self.after = after
         self.out_since: float | None = None
+        self.paused = False
+        self.resumed = False   # true on the frame a pause ends
 
     def update(self, p: np.ndarray | None, t: float) -> tuple[bool, list[str]]:
         """(paused, joints out of frame now)."""
@@ -75,4 +77,6 @@ class FrameWatch:
             self.out_since = None
         elif self.out_since is None:
             self.out_since = t
-        return self.out_since is not None and t - self.out_since >= self.after, missing
+        paused = self.out_since is not None and t - self.out_since >= self.after
+        self.resumed, self.paused = self.paused and not paused, paused
+        return paused, missing

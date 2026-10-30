@@ -13,6 +13,7 @@ from src.rules import Pose
 
 STATIC = paths.resource_root() / "static"
 RECORDINGS = paths.config_path().parent / "recordings"
+DEV = not paths.frozen()   # drill recordings are for debugging with Claude: running from source only, never the packaged app
 
 
 class Hub:
@@ -34,7 +35,7 @@ class Hub:
             if jpeg is not None:
                 self.jpeg = jpeg
             self.state = state
-            if "t" in state:   # every camera frame, not just the broadcast ones, so drill recordings miss no spikes
+            if DEV and "t" in state:   # every camera frame, not just the broadcast ones, so drill recordings miss no spikes
                 self.frames.append({"t": round(state["t"], 3), "body": state["body"], "paused": state["paused"], "missing": state["missing"], "f": state["features"],
                                     "on": [i for i, s in enumerate(state["state"]) if s["active"]]})
 
@@ -141,14 +142,15 @@ async def _start_bg(app):
 
 
 def make_app(hub: Hub) -> web.Application:
-    app = web.Application()
+    app = web.Application(client_max_size=64 * 1024 ** 2)   # a minute of drill frames is over the default 1 MB
     app["hub"] = hub
     app.router.add_get("/", index)
     app.router.add_get("/stream", stream)
     app.router.add_get("/ws", ws_handler)
     app.router.add_get("/config", config_get)
     app.router.add_put("/config", config_put)
-    app.router.add_post("/recording", recording_post)
+    if DEV:
+        app.router.add_post("/recording", recording_post)
     app.router.add_static("/static", STATIC)
     app.on_startup.append(_start_bg)
     return app

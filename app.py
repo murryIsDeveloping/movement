@@ -72,6 +72,8 @@ class App:
                 # Out of frame for a while (walked up to the camera): no features, so no baselines learnt from a
                 # half-seen body, and every key up at once, holds included. A blip out of frame carries on as normal.
                 paused, missing = self.frame_watch.update(p, t)
+                if self.frame_watch.resumed:   # back in view, maybe at a new spot: re-learn standing height and knees
+                    self.features.reset_baselines()
                 feats = {} if paused or p is None else self.features.update(p, t)
                 with self.lock:
                     if paused:

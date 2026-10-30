@@ -179,8 +179,9 @@ function connect() {
     if (!dirty && !pending && !typing && incoming !== JSON.stringify(poses)) { poses = m.poses; renderPoses(); }
     document.getElementById('send').checked = !!m.send_keys;
     paused = m.paused ? (m.body ? m.missing : []) : null;   // the server debounces: a blip out of frame isn't a pause
-    document.getElementById('body').textContent = m.error ? 'camera error: ' + m.error : paused ? (m.body ? 'paused: not fully in frame' : 'no body') : 'body tracked';
-    document.getElementById('body').className = 'pill ' + (paused ? 'bad' : 'on');
+    const ok = !m.error && m.body && !paused;
+    document.getElementById('body').textContent = m.error ? 'camera error: ' + m.error : !m.body ? 'no body' : paused ? 'paused: not fully in frame' : 'body tracked';
+    document.getElementById('body').className = 'pill ' + (ok ? 'on' : 'bad');
     const pz = document.getElementById('paused');
     pz.classList.toggle('on', !!paused);
     if (paused) pz.innerHTML = pausedText();
