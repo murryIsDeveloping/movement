@@ -101,15 +101,19 @@ const drillable = i => poses[i] && poses[i].enabled !== false && poses[i].condit
 // a condition only met while moving (jump, jog, punch), not a stillness band like "hand not moving" (vy < 1.5)
 const needsMotion = c => COACH_MOVES.test(c.feature) && (c.op === '>' ? c.value > 0 : c.value < 0);
 const canHold = i => !poses[i].conditions.some(needsMotion);
+// a movement that stays on while you keep it up (jog, stride): kept going for seconds, as reps would mean stopping each time
+const sustained = i => poses[i].conditions.some(needsMotion) && poses[i].conditions.filter(needsMotion).every(c => c.feature === 'step_cadence');
 
-// what the prompt asks: hold for `goal` seconds, or `goal` reps
+// what the prompt asks: hold (or keep a movement going) for `goal` seconds, or `goal` reps
 function drillGoal(i) {
-  const d = drill, hold = canHold(i) && (d.learn || d.cfg.holdable);
-  return hold ? { kind: 'hold', goal: d.learn ? LEARN_HOLD : d.cfg.hold } : { kind: 'reps', goal: d.learn ? LEARN_REPS : d.cfg.reps };
+  const d = drill, hold = (canHold(i) && (d.learn || d.cfg.holdable)) || sustained(i);
+  return hold ? { kind: 'hold', goal: d.learn ? LEARN_HOLD : d.cfg.hold, moving: sustained(i) }
+    : { kind: 'reps', goal: d.learn ? LEARN_REPS : d.cfg.reps, moving: false };
 }
 
 // while prompting: what's asked, and how far along
-const progressText = d => d.kind === 'hold' ? (d.held ? `holding · ${Math.ceil(d.goal - d.held)}s left` : `hold ${d.goal}s`)
+const progressText = d => d.kind === 'hold'
+  ? (d.held ? `${d.moving ? 'keep going' : 'holding'} · ${Math.ceil(d.goal - d.held)}s left` : `${d.moving ? 'keep it up' : 'hold'} ${d.goal}s`)
   : `${d.count}/${d.goal} reps`;
 
 // active poses in list order, for learn mode
@@ -189,7 +193,9 @@ function endDrill(again = false) {
   if (!again) restoreSend();
   clearInterval(drill.timer);
   if (window.speechSynthesis) speechSynthesis.cancel();
-  drill.el.querySelector('.coach').textContent = '';
+  // wipe what this run showed: the next one starts paused if you're out of frame, and a paused tick redraws none of it
+  for (const sel of ['.coach', '.big', '.sub', '.clock', '.checks', '.results', '.cue .fig']) drill.el.querySelector(sel).innerHTML = '';
+  drill.el.querySelector('.big').className = 'big';
   drill.el.classList.remove('open', 'setup');
   drill.el.querySelector('img').removeAttribute('src');   // closes the second MJPEG stream
   drill = null;
@@ -221,7 +227,7 @@ function drillPrompt(now) {
   drill.said = null; drill.saidAt = null;
   drillEvent('prompt', poses[drill.target].name, { kind: drill.kind, goal: drill.goal });
   beep(660, 80);
-  say(`${poses[drill.target].name}, ${drill.kind === 'hold' ? `hold ${drill.goal} seconds` : `${drill.goal} reps`}`);   // eyes can stay off the screen
+  say(`${poses[drill.target].name}, ${drill.kind === 'hold' ? `${drill.moving ? 'keep it up' : 'hold'} ${drill.goal} seconds` : `${drill.goal} reps`}`);   // eyes can stay off the screen
 }
 
 // learn: on to the next pose, or the results after the last one
