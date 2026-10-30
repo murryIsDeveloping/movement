@@ -18,7 +18,7 @@ Read before judging:
 
 If the app is running (or the user asks), use the `run` skill to open `http://localhost:8765` and look at it for real: screenshots beat reading markup.
 
-The user: plays World of Warcraft, stands 2–3 m from a laptop mid-exercise, game focused, out of breath. So:
+The user: plays an MMO, stands 2–3 m from a laptop mid-exercise, game focused, out of breath. So:
 - **Glanceable from across the room**: big type, strong colour and state, no reading small text mid-rep.
 - **Hands-free during play**: anything that needs the mouse or keyboard mid-session is a cost. Audio or large visual cues beat dialogs.
 - **Trust**: the user must always know whether keys are being sent, what fired, and why or why not. Surprise key presses are the worst outcome.

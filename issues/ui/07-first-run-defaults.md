@@ -11,7 +11,7 @@ A new install starts with the four hard-coded poses in `DEFAULT`. They have no `
 
 ## Fix
 Pick one:
-1. **Defaults from the library.** On first run, build `poses` from a built-in group (for example *wow hunter*), server-side in `src/library.py`. Map presets to poses the same way `poseFromPreset` does in `static/library.js:50`. The cards are then linked to the library and tested.
+1. **Defaults from the library.** On first run, build `poses` from a built-in group (for example *mmo hunter*), server-side in `src/library.py`. Map presets to poses the same way `poseFromPreset` does in `static/library.js:50`. The cards are then linked to the library and tested.
 2. **A hint.** While the poses still equal `DEFAULT`, show one line above them: "New here? Load a ready-made setup from the **library**", with a button that opens the library panel.
 
 Option 1 is better for the player. Option 2 is the smallest change.

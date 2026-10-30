@@ -1,4 +1,4 @@
-"""Pose → keyboard (and mouse, in camera mode) for WoW, with a browser GUI for defining poses.
+"""Pose → keyboard (and mouse, in camera mode) for MMOs and other games, with a browser GUI for defining poses.
 
   python app.py          start camera + GUI at http://localhost:8765
 """

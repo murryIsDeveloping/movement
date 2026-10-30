@@ -1,4 +1,4 @@
-"""Camera mode: a clap, or a pose of your choice, toggles it. While it's on a mouse button is held (right by default: WoW's
+"""Camera mode: a clap, or a pose of your choice, toggles it. While it's on a mouse button is held (right by default: an MMO's
 mouselook, which turns the character with the camera; left turns the camera alone) and the right hand steers like a
 thumbstick. Backend injected for tests."""
 import math
@@ -118,7 +118,7 @@ class LookOutput:
 
 def system_mouse():
     """Left or right button plus relative moves. On Windows the moves go through SendInput: pynput's move jumps the cursor with
-    SetCursorPos, which games reading raw mouse input (WoW's camera drag) don't see."""
+    SetCursorPos, which games reading raw mouse input (an MMO's camera drag) don't see."""
     from pynput.mouse import Button, Controller
 
     ctl = Controller()

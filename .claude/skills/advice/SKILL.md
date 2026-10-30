@@ -16,7 +16,7 @@ Read before advising:
 4. `git log --oneline -30`: where the momentum is.
 5. Skim `src/` and `static/` enough to ground suggestions in real code.
 
-What it is: webcam pose → held keys, so grinding in World of Warcraft becomes a workout. The user stands 2–3 m from a laptop, mid-exercise, with the game focused. That shapes everything:
+What it is: webcam pose → held keys, so grinding in an MMO becomes a workout. The user stands 2–3 m from a laptop, mid-exercise, with the game focused. That shapes everything:
 - Any interaction away from the keyboard is expensive. Hands-free, glanceable, big-text and audio cues win.
 - False fires cost more than missed ones (a wrong key in combat), but laggy or unreliable detection kills the workout.
 - It's a personal tool, so local-first, simple and low-maintenance beat general or enterprise-grade.

@@ -1,6 +1,6 @@
 # movement
 
-Webcam pose → keyboard (WoW, Mario), plus drills, learn mode and coaching for workouts and yoga. Python backend (MediaPipe, aiohttp, pynput), plain-JS browser GUI. See `README.md` for features and `DECISIONS.md` for why things are the way they are.
+Webcam pose → keyboard (MMOs, platformers), plus drills, learn mode and coaching for workouts and yoga. Python backend (MediaPipe, aiohttp, pynput), plain-JS browser GUI. See `README.md` for features and `DECISIONS.md` for why things are the way they are.
 
 - `app.py`: camera loop. `src/features.py`: body features (the stick figure in `static/figure.js` re-implements the static ones: change both). `src/rules.py`: poses as feature conditions. `presets.yaml`: built-in presets and groups.
 - `static/drill.js`: drill, learn, coaching, holds and reps. `static/figure.js`: stick figure solver and clashes.

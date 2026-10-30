@@ -4,7 +4,7 @@
 
 ## Problem
 Two failures are only printed to the console, and the packaged app has no console:
-- **Accessibility not granted (macOS).** Keys never reach WoW. The user ticks send keys and plays, nothing happens, and nothing explains why.
+- **Accessibility not granted (macOS).** Keys never reach the game. The user ticks send keys and plays, nothing happens, and nothing explains why.
 - **Config rejected by the server.** The server drops the edit. After the 2-second `pending` window the page takes the server's poses back, so the user's edit silently reverts.
 
 ## Where

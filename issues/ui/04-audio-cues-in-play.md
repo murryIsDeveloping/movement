@@ -3,7 +3,7 @@
 **Severity:** medium-high · **Size:** small
 
 ## Problem
-During play, WoW has focus and the GUI isn't visible. When tracking pauses because the user is out of frame or no body is seen, every key is released silently. The character just stops, and the user can't tell why. Audio cues only exist in the drill and in capture.
+During play, the game has focus and the GUI isn't visible. When tracking pauses because the user is out of frame or no body is seen, every key is released silently. The character just stops, and the user can't tell why. Audio cues only exist in the drill and in capture.
 
 ## Where
 - `static/index.html:208-214`: the pause state is only shown visually.
@@ -18,5 +18,5 @@ During play, WoW has focus and the GUI isn't visible. When tracking pauses becau
 4. Check that the beeps play while the tab is in the background. Chrome allows audio from an `AudioContext` that has already started.
 
 ## Acceptance
-- With keys on and WoW focused, walking out of frame and back in gives two distinct beeps.
+- With keys on and the game focused, walking out of frame and back in gives two distinct beeps.
 - There are no beeps when keys are off or the sound box is unticked.
