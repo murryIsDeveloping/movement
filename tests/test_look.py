@@ -159,3 +159,15 @@ def test_a_failed_press_doesnt_sweep_the_pointer():
     out = LookOutput(FakeMouse(fail=True))
     out.apply(True, "right", (100.0, 0.0), 0.1)
     assert out.mouse.log == []
+
+
+def test_the_mouse_mover_leaves_pynputs_send_input_alone():
+    """pynput's keyboard calls the shared user32.SendInput with its own INPUT type: retyping it broke every key press."""
+    import ctypes, sys
+    if sys.platform != "win32":
+        return
+    from src.look import _send_input_move
+    shared = ctypes.windll.user32.SendInput
+    before = shared.argtypes
+    _send_input_move()
+    assert shared.argtypes == before

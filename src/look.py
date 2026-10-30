@@ -143,7 +143,8 @@ def _send_input_move():
     class INPUT(ctypes.Structure):   # the mouse member of the union only: it's the largest, so the size matches
         _fields_ = [("type", wintypes.DWORD), ("mi", MOUSEINPUT)]
 
-    send = ctypes.windll.user32.SendInput
+    # A private user32: argtypes on the shared ctypes.windll.user32.SendInput would replace pynput's, and its key presses fail
+    send = ctypes.WinDLL("user32").SendInput
     send.argtypes = [wintypes.UINT, ctypes.POINTER(INPUT), ctypes.c_int]
     INPUT_MOUSE, MOUSEEVENTF_MOVE = 0, 0x0001
 
