@@ -978,6 +978,328 @@ presets:
   enabled: true
   hold: 0.4
   delay: 0.3
+- name: chair
+  status: untested
+  notes: 'Yoga chair (utkatasana): feet together, sit back as if into a chair, both
+    arms reaching up overhead, chest lifted. Clashes with squat hands up when you sit
+    deep.'
+  key: b
+  conditions:
+  - feature: hip_drop
+    op: '>'
+    value: 0.2
+  - feature: left_arm_raise
+    op: '>'
+    value: 140.0
+  - feature: right_arm_raise
+    op: '>'
+    value: 140.0
+  - feature: left_wrist_up
+    op: '>'
+    value: 0.5
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.5
+  - feature: lean
+    op: '>'
+    value: -0.15
+  - feature: lean
+    op: <
+    value: 0.15
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.5
+- name: tree right
+  status: untested
+  notes: 'Yoga tree (vrksasana): stand on your left leg, right foot on the inside of
+    your left calf or thigh (not the knee), right knee out to the side, palms together
+    at your chest. Keep your feet in view: the knees are read down to the ankle.'
+  key: m
+  conditions:
+  - feature: right_knee_out
+    op: '>'
+    value: 0.25
+  - feature: right_knee_angle
+    op: <
+    value: 140.0
+  - feature: left_knee_angle
+    op: '>'
+    value: 160.0
+  - feature: right_knee_lift
+    op: '>'
+    value: 0.1
+  - feature: wrists_distance
+    op: <
+    value: 0.25
+  - feature: left_wrist_up
+    op: '>'
+    value: -0.8
+  - feature: left_wrist_up
+    op: <
+    value: 0.1
+  - feature: right_wrist_up
+    op: '>'
+    value: -0.8
+  - feature: right_wrist_up
+    op: <
+    value: 0.1
+  - feature: lean
+    op: '>'
+    value: -0.15
+  - feature: lean
+    op: <
+    value: 0.15
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.5
+- name: tree left
+  status: untested
+  notes: 'Yoga tree (vrksasana): stand on your right leg, left foot on the inside of
+    your right calf or thigh (not the knee), left knee out to the side, palms together
+    at your chest. Keep your feet in view: the knees are read down to the ankle.'
+  key: v
+  conditions:
+  - feature: left_knee_out
+    op: '>'
+    value: 0.25
+  - feature: left_knee_angle
+    op: <
+    value: 140.0
+  - feature: right_knee_angle
+    op: '>'
+    value: 160.0
+  - feature: left_knee_lift
+    op: '>'
+    value: 0.1
+  - feature: wrists_distance
+    op: <
+    value: 0.25
+  - feature: left_wrist_up
+    op: '>'
+    value: -0.8
+  - feature: left_wrist_up
+    op: <
+    value: 0.1
+  - feature: right_wrist_up
+    op: '>'
+    value: -0.8
+  - feature: right_wrist_up
+    op: <
+    value: 0.1
+  - feature: lean
+    op: '>'
+    value: -0.15
+  - feature: lean
+    op: <
+    value: 0.15
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.5
+- name: warrior 2 right
+  status: untested
+  notes: 'Yoga warrior II (virabhadrasana II), chest facing the camera: feet wide, right
+    foot turned out to your right, bend the right knee over the ankle, left leg straight,
+    arms straight out at shoulder height, torso upright over the hips. Keep your feet
+    in view.'
+  key: f1
+  conditions:
+  - feature: right_knee_angle
+    op: <
+    value: 140.0
+  - feature: right_knee_out
+    op: '>'
+    value: 0.25
+  - feature: left_knee_angle
+    op: '>'
+    value: 160.0
+  - feature: left_arm_raise
+    op: '>'
+    value: 75.0
+  - feature: left_arm_raise
+    op: <
+    value: 105.0
+  - feature: right_arm_raise
+    op: '>'
+    value: 75.0
+  - feature: right_arm_raise
+    op: <
+    value: 105.0
+  - feature: left_arm_angle
+    op: '>'
+    value: 150.0
+  - feature: right_arm_angle
+    op: '>'
+    value: 150.0
+  - feature: lean
+    op: '>'
+    value: -0.15
+  - feature: lean
+    op: <
+    value: 0.15
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.5
+- name: warrior 2 left
+  status: untested
+  notes: 'Yoga warrior II (virabhadrasana II), chest facing the camera: feet wide, left
+    foot turned out to your left, bend the left knee over the ankle, right leg straight,
+    arms straight out at shoulder height, torso upright over the hips. Keep your feet
+    in view.'
+  key: f5
+  conditions:
+  - feature: left_knee_angle
+    op: <
+    value: 140.0
+  - feature: left_knee_out
+    op: '>'
+    value: 0.25
+  - feature: right_knee_angle
+    op: '>'
+    value: 160.0
+  - feature: left_arm_raise
+    op: '>'
+    value: 75.0
+  - feature: left_arm_raise
+    op: <
+    value: 105.0
+  - feature: right_arm_raise
+    op: '>'
+    value: 75.0
+  - feature: right_arm_raise
+    op: <
+    value: 105.0
+  - feature: left_arm_angle
+    op: '>'
+    value: 150.0
+  - feature: right_arm_angle
+    op: '>'
+    value: 150.0
+  - feature: lean
+    op: '>'
+    value: -0.15
+  - feature: lean
+    op: <
+    value: 0.15
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.5
+- name: goddess
+  status: untested
+  notes: 'Yoga goddess (utkata konasana): feet wide and turned out, bend both knees
+    into a wide squat, upper arms out at shoulder height with elbows bent and hands
+    up (cactus arms), torso upright. Keep your feet in view.'
+  key: f2
+  conditions:
+  - feature: hip_drop
+    op: '>'
+    value: 0.2
+  - feature: left_knee_angle
+    op: <
+    value: 150.0
+  - feature: right_knee_angle
+    op: <
+    value: 150.0
+  - feature: left_knee_out
+    op: '>'
+    value: 0.2
+  - feature: right_knee_out
+    op: '>'
+    value: 0.2
+  - feature: left_arm_raise
+    op: '>'
+    value: 65.0
+  - feature: left_arm_raise
+    op: <
+    value: 115.0
+  - feature: right_arm_raise
+    op: '>'
+    value: 65.0
+  - feature: right_arm_raise
+    op: <
+    value: 115.0
+  - feature: left_arm_angle
+    op: '>'
+    value: 60.0
+  - feature: left_arm_angle
+    op: <
+    value: 120.0
+  - feature: right_arm_angle
+    op: '>'
+    value: 60.0
+  - feature: right_arm_angle
+    op: <
+    value: 120.0
+  - feature: left_wrist_up
+    op: '>'
+    value: 0.2
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.2
+  - feature: lean
+    op: '>'
+    value: -0.15
+  - feature: lean
+    op: <
+    value: 0.15
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.5
+- name: crescent left
+  status: untested
+  notes: 'Yoga standing crescent: feet together, arms overhead with palms together,
+    bend sideways at the waist to your left. Both hips stay level.'
+  key: f3
+  conditions:
+  - feature: lean
+    op: <
+    value: -0.3
+  - feature: left_wrist_up
+    op: '>'
+    value: 0.5
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.5
+  - feature: wrists_distance
+    op: <
+    value: 0.35
+  - feature: hip_drop
+    op: <
+    value: 0.3
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.5
+- name: crescent right
+  status: untested
+  notes: 'Yoga standing crescent: feet together, arms overhead with palms together,
+    bend sideways at the waist to your right. Both hips stay level.'
+  key: f4
+  conditions:
+  - feature: lean
+    op: '>'
+    value: 0.3
+  - feature: left_wrist_up
+    op: '>'
+    value: 0.5
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.5
+  - feature: wrists_distance
+    op: <
+    value: 0.35
+  - feature: hip_drop
+    op: <
+    value: 0.3
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.5
 groups:
 - name: wow hunter
   notes: 'Movement on W/A/D/Q/E and space. Shots and pet abilities on action bar 1-8:
@@ -1095,4 +1417,22 @@ groups:
   - side bend left
   - side bend right
   - toe touch
+  keys: {}
+- name: yoga
+  notes: 'Easy standing yoga, chest facing the camera, in a flowing order: upward
+    salute, forward fold, chair, prayer, tree each side, crescent each side, warrior
+    II, goddess. Use learn to go through it with coaching. Each pose presses its
+    preset''s default key.'
+  presets:
+  - both arms up
+  - toe touch
+  - chair
+  - prayer hands
+  - tree right
+  - tree left
+  - crescent left
+  - crescent right
+  - warrior 2 right
+  - warrior 2 left
+  - goddess
   keys: {}
