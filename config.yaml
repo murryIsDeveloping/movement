@@ -47,203 +47,42 @@ poses:
   hold: 0.3
   delay: 0
   preset: jump
-- name: right
-  key: d
+- name: star jump
+  key: p
   conditions:
-  - feature: right_arm_raise
-    op: <
-    value: 100
-  - feature: right_arm_raise
+  - feature: hip_rise
     op: '>'
-    value: 76
-  - feature: left_arm_raise
-    op: <
-    value: 35
-  - feature: lean
-    op: <
-    value: 0.1
-  - feature: lean
-    op: '>'
-    value: -0.1
-  - feature: right_wrist_up
-    op: <
-    value: 0.4
-  - feature: right_wrist_vy
-    op: <
-    value: 1.5
-  - feature: right_wrist_vy
-    op: '>'
-    value: -1.5
-  margin: 0.1
-  enabled: true
-  hold: 0.25
-  delay: 0.35
-  preset: right
-- name: left
-  key: a
-  conditions:
-  - feature: left_arm_raise
-    op: <
-    value: 100
-  - feature: left_arm_raise
-    op: '>'
-    value: 76
-  - feature: right_arm_raise
-    op: <
-    value: 35
-  - feature: lean
-    op: '>'
-    value: -0.1
-  - feature: lean
-    op: <
-    value: 0.1
+    value: 0.2
   - feature: left_wrist_up
-    op: <
-    value: 0.4
-  - feature: left_wrist_vy
-    op: <
-    value: 1.5
-  - feature: left_wrist_vy
     op: '>'
-    value: -1.5
-  margin: 0.1
-  enabled: true
-  hold: 0.25
-  delay: 0.35
-  preset: left
-- name: stride right
-  key: e
-  conditions:
-  - feature: step_cadence
-    op: '>'
-    value: 0.4
-  - feature: lean
-    op: '>'
-    value: 0.25
-  margin: 0.1
-  enabled: true
-  hold: 0.25
-  delay: 0
-  preset: stride right
-- name: stride left
-  key: q
-  conditions:
-  - feature: step_cadence
-    op: '>'
-    value: 0.4
-  - feature: lean
-    op: <
-    value: -0.25
-  margin: 0.1
-  enabled: true
-  hold: 0.25
-  delay: 0
-  preset: stride left
-- name: right punch
-  key: '1'
-  conditions:
-  - feature: right_punch
-    op: '>'
-    value: 500
-  - feature: hip_drop
-    op: <
-    value: 0.4
-  - feature: right_arm_raise
-    op: <
-    value: 75
-  - feature: left_arm_raise
-    op: <
-    value: 75
-  - feature: right_arm_raise
-    op: '>'
-    value: 28
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0
-  preset: right punch
-- name: left punch
-  key: '2'
-  conditions:
-  - feature: left_punch
-    op: '>'
-    value: 500
-  - feature: hip_drop
-    op: <
-    value: 0.4
-  - feature: left_arm_raise
-    op: <
-    value: 75
-  - feature: right_arm_raise
-    op: <
-    value: 75
-  - feature: left_arm_raise
-    op: '>'
-    value: 28
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0
-  preset: left punch
-- name: right up
-  key: '3'
-  conditions:
+    value: 0.5
   - feature: right_wrist_up
     op: '>'
-    value: 0.75
-  - feature: right_arm_raise
-    op: '>'
-    value: 130
-  - feature: left_wrist_up
-    op: <
-    value: -0.2
+    value: 0.5
   margin: 0.1
   enabled: true
-  hold: 0.4
+  hold: 0.3
   delay: 0
-  preset: right up
-- name: left up
-  key: '4'
+  preset: star jump
+- name: squat hands up
+  key: '0'
   conditions:
+  - feature: hip_drop
+    op: '>'
+    value: 0.4
   - feature: left_wrist_up
     op: '>'
     value: 0.75
-  - feature: left_arm_raise
-    op: '>'
-    value: 130
   - feature: right_wrist_up
-    op: <
-    value: -0.2
+    op: '>'
+    value: 0.75
   margin: 0.1
   enabled: true
   hold: 0.4
   delay: 0
-  preset: left up
-- name: hold sword
-  key: '5'
-  conditions:
-  - feature: wrists_distance
-    op: '>'
-    value: 0
-  - feature: left_arm_angle
-    op: <
-    value: 39
-  - feature: right_arm_angle
-    op: <
-    value: 36
-  - feature: right_arm_raise
-    op: '>'
-    value: 77
-  - feature: left_arm_raise
-    op: '>'
-    value: 82
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0
-  preset: hold sword
+  preset: squat hands up
 - name: squat hands out
-  key: '6'
+  key: '-'
   conditions:
   - feature: hip_drop
     op: '>'
@@ -271,34 +110,6 @@ poses:
   hold: 0.4
   delay: 0
   preset: squat hands out
-- name: right knee up
-  key: '7'
-  conditions:
-  - feature: right_knee_lift
-    op: '>'
-    value: 0.6
-  - feature: left_knee_lift
-    op: <
-    value: 0.1
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0
-  preset: right knee up
-- name: left knee up
-  key: '8'
-  conditions:
-  - feature: left_knee_lift
-    op: '>'
-    value: 0.6
-  - feature: right_knee_lift
-    op: <
-    value: 0.1
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0
-  preset: left knee up
 - name: pick up
   key: l
   conditions:
@@ -316,3 +127,211 @@ poses:
   hold: 0.25
   delay: 0
   preset: pick up
+- name: right knee up
+  key: '4'
+  conditions:
+  - feature: right_knee_lift
+    op: '>'
+    value: 0.6
+  - feature: left_knee_lift
+    op: <
+    value: 0.1
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0
+  preset: right knee up
+- name: left knee up
+  key: '5'
+  conditions:
+  - feature: left_knee_lift
+    op: '>'
+    value: 0.6
+  - feature: right_knee_lift
+    op: <
+    value: 0.1
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0
+  preset: left knee up
+- name: right knee to left elbow
+  key: i
+  conditions:
+  - feature: right_knee_lift
+    op: '>'
+    value: 0.5
+  - feature: left_arm_angle
+    op: <
+    value: 70
+  - feature: left_wrist_out
+    op: <
+    value: 0.1
+  - feature: left_wrist_up
+    op: <
+    value: 0
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0
+  preset: right knee to left elbow
+- name: left knee to right elbow
+  key: o
+  conditions:
+  - feature: left_knee_lift
+    op: '>'
+    value: 0.5
+  - feature: right_arm_angle
+    op: <
+    value: 70
+  - feature: right_wrist_out
+    op: <
+    value: 0.1
+  - feature: right_wrist_up
+    op: <
+    value: 0
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0
+  preset: left knee to right elbow
+- name: right punch
+  key: n
+  conditions:
+  - feature: right_punch
+    op: '>'
+    value: 500
+  - feature: hip_drop
+    op: <
+    value: 0.4
+  - feature: right_arm_raise
+    op: <
+    value: 75
+  - feature: left_arm_raise
+    op: <
+    value: 75
+  - feature: right_arm_raise
+    op: '>'
+    value: 28
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0
+  preset: right punch
+- name: left punch
+  key: '9'
+  conditions:
+  - feature: left_punch
+    op: '>'
+    value: 500
+  - feature: hip_drop
+    op: <
+    value: 0.4
+  - feature: left_arm_raise
+    op: <
+    value: 75
+  - feature: right_arm_raise
+    op: <
+    value: 75
+  - feature: left_arm_raise
+    op: '>'
+    value: 28
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0
+  preset: left punch
+- name: right uppercut
+  key: y
+  conditions:
+  - feature: right_wrist_vy
+    op: '>'
+    value: 4
+  - feature: right_arm_angle
+    op: <
+    value: 110
+  - feature: right_wrist_up
+    op: '>'
+    value: -0.5
+  - feature: hip_drop
+    op: <
+    value: 0.4
+  margin: 0.1
+  enabled: true
+  hold: 0.3
+  delay: 0
+  preset: right uppercut
+- name: left uppercut
+  key: u
+  conditions:
+  - feature: left_wrist_vy
+    op: '>'
+    value: 4
+  - feature: left_arm_angle
+    op: <
+    value: 110
+  - feature: left_wrist_up
+    op: '>'
+    value: -0.5
+  - feature: hip_drop
+    op: <
+    value: 0.4
+  margin: 0.1
+  enabled: true
+  hold: 0.3
+  delay: 0
+  preset: left uppercut
+- name: side bend left
+  key: f11
+  conditions:
+  - feature: lean
+    op: <
+    value: -0.35
+  - feature: step_cadence
+    op: <
+    value: 0.2
+  - feature: hip_drop
+    op: <
+    value: 0.3
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+  preset: side bend left
+- name: side bend right
+  key: f12
+  conditions:
+  - feature: lean
+    op: '>'
+    value: 0.35
+  - feature: step_cadence
+    op: <
+    value: 0.2
+  - feature: hip_drop
+    op: <
+    value: 0.3
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+  preset: side bend right
+- name: toe touch
+  key: f10
+  conditions:
+  - feature: wrist_low
+    op: '>'
+    value: 0.5
+  - feature: hip_drop
+    op: <
+    value: 0.3
+  - feature: lean
+    op: '>'
+    value: -0.25
+  - feature: lean
+    op: <
+    value: 0.25
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+  preset: toe touch
