@@ -37,6 +37,7 @@
   .pose-head input.name { flex:1; min-width:120px; font-weight:600; }
   input, select { background:#0f1113; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; }
   input.key { width:80px; text-align:center; font-family:ui-monospace, Menlo, monospace; }
+  input.invalid { border-color:var(--bad); }
   input.hold, input.delay { width:64px; text-align:center; }
   .cond { display:grid; grid-template-columns: 10px 1fr auto 70px 1fr 90px auto; gap:8px; align-items:center; margin-top:8px; }
   .cond .dot { width:10px; height:10px; border-radius:50%; background:var(--off); }
@@ -185,6 +186,21 @@ let state = [];          // pose states, by position in poses
 let paused = null;       // null while fully in frame; else the joints out of frame ([] = no body at all)
 const rangeOf = f => (info[f] || {}).range || [-2, 2, 0.01];   // [min, max, step], from UNIT_RANGES in src/features.py
 const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[ch]);
+let keyNames = new Set();   // pynput Key names, from KEY_NAMES in src/keys.py
+// '' if pynput can press it: one character or a Key name. Until the server's list arrives, the server checks alone.
+const keyError = k => !k ? 'no key set' : k.length === 1 || !keyNames.size || keyNames.has(k) ? ''
+  : `unknown key "${k}": use one character or a key name like space, shift, f1`;
+// Wires a key input (here and in the library): saved on change (blur or Enter), not per keystroke, since a half-typed
+// 'spa' isn't a key. An unknown key is marked invalid, with the reason as its title, and not saved. blankOk: '' saves.
+function keyField(el, save, blankOk = false) {
+  const title = el.title;
+  el.oninput = () => { el.classList.remove('invalid'); el.title = title; };
+  el.onchange = () => {
+    const v = el.value.trim(), err = blankOk && !v ? '' : keyError(v);
+    el.classList.toggle('invalid', !!err); el.title = err || title;
+    if (!err) save(v);
+  };
+}
 let dirty = false, saveTimer = null;
 let pending = null, pendingAt = 0;   // poses JSON just sent; server broadcasts lag a frame behind it
 let ws;
@@ -198,6 +214,7 @@ function connect() {
     drillFrame(m);
     checkTrigger();
     if (!Object.keys(info).length) { info = m.feature_info || {}; }
+    if (!keyNames.size && m.key_names) keyNames = new Set(m.key_names);
     // Take the server's poses only when they're a real outside change (import, another tab): not stale
     // copies from before our last save, and never mid-typing, since a re-render drops input focus.
     const incoming = JSON.stringify(m.poses);
@@ -283,7 +300,7 @@ function renderPoses() {
       <div class="capslot"></div>`;
     const refresh = () => { div.querySelector('.fig').innerHTML = figureSVG(p.conditions); scheduleClashes(); };
     div.querySelector('.name').oninput = e => { p.name = e.target.value; scheduleSave(); };
-    div.querySelector('.key').oninput = e => { p.key = e.target.value; scheduleSave(); };
+    keyField(div.querySelector('.key'), k => { p.key = k; scheduleSave(); });
     div.querySelector('.hold').oninput = e => { p.hold = Math.max(0, parseFloat(e.target.value) || 0); scheduleSave(); };
     div.querySelector('.delay').oninput = e => { p.delay = Math.max(0, parseFloat(e.target.value) || 0); scheduleSave(); };
     div.querySelector('.en').onchange = e => { p.enabled = e.target.checked; renderPoses(); scheduleSave(); };

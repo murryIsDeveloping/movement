@@ -141,3 +141,19 @@ def test_renamed_user_preset_keeps_its_group_key(files):
 def test_pose_keeps_preset_link():
     assert Pose.from_dict({"name": "a", "preset": "arm", **ARM}).to_dict()["preset"] == "arm"
     assert Pose.from_dict({"name": "a", **ARM}).preset == ""
+
+
+def test_load_repairs_bad_keys(files, capsys):
+    b, u = files
+    u.write_text(yaml.safe_dump({"presets": [preset("mine", key="spac")],
+                                 "groups": [{"name": "my g", "presets": ["arm", "mine"], "keys": {"arm": "spa", "mine": "x"}}]}))
+    lib = library.load(b, u)
+    assert lib["presets"][1]["key"] == "1"
+    assert lib["groups"][1]["keys"] == {"mine": "x"}
+    out = capsys.readouterr().out
+    assert "unknown key 'spac', reset" in out and "unknown key 'spa' for 'arm', dropped" in out
+
+
+def test_validate_rejects_bad_group_key():
+    with pytest.raises(ValueError, match="group 'g': unknown key 'spac' for 'arm'"):
+        library.validate({"presets": [preset("arm")], "groups": [{"name": "g", "presets": ["arm"], "keys": {"arm": "spac"}}]})

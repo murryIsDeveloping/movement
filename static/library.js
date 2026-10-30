@@ -247,11 +247,10 @@ function renderLibrary() {
     };
     el.querySelector('.notes').onchange = e => { g.notes = e.target.value; saveLibrary(); };
     el.querySelectorAll('.chip button').forEach(b => b.onclick = () => { removeFromGroup(g, b.dataset.n); saveLibrary(); });
-    el.querySelectorAll('.chip .gk').forEach(i => i.onchange = () => {
-      const k = i.value.trim();
+    el.querySelectorAll('.chip .gk').forEach(i => keyField(i, k => {
       if (k && k !== presetOf(i.dataset.n).key) g.keys[i.dataset.n] = k; else delete g.keys[i.dataset.n];
       saveLibrary();
-    });
+    }, true));
   }
 
   const ps = root.querySelector('.presets');
@@ -291,7 +290,7 @@ function renderLibrary() {
     if (!ed) continue;
     el.querySelector('.name').onchange = e => renamePreset(pr, e.target.value);
     el.querySelector('.st').onchange = e => { pr.status = e.target.value; saveLibrary(); };
-    el.querySelector('.key').onchange = e => { pr.key = e.target.value.trim() || pr.key; saveLibrary(); };
+    keyField(el.querySelector('.key'), k => { pr.key = k; saveLibrary(); });
     el.querySelector('.notes').onchange = e => { pr.notes = e.target.value; saveLibrary(); };
     el.querySelector('.del').onclick = () => deletePreset(pr);
   }

@@ -17,7 +17,7 @@ from src import paths
 paths.setup_frozen_env()
 from src.camera import Camera
 from src.features import FEATURE_INFO, FeatureEngine
-from src.keys import KeyState, pynput_keyboard
+from src.keys import KEY_NAMES, KeyState, pynput_keyboard
 from src.landmarks import FrameWatch
 from src.overlay import draw_skeleton
 from src.pose import PoseTracker
@@ -25,12 +25,14 @@ from src.rules import RuleEngine
 from src.server import Hub, make_app
 from src.trust import accessibility_trusted
 
+KEY_LIST = sorted(KEY_NAMES)   # for the GUI's key check
+
 
 class App:
     def __init__(self):
         self.cfg = cfgmod.load()
         self.lock = threading.Lock()
-        self.rules = RuleEngine(cfgmod.poses_from(self.cfg))
+        self.rules = RuleEngine(cfgmod.poses_lenient(self.cfg))   # strict in set_config: a bad edit is refused
         self.features = FeatureEngine()
         self.frame_watch = FrameWatch(float(self.cfg.get("pause_after", 0.5)))
         self.keys = KeyState(pynput_keyboard())
@@ -91,7 +93,7 @@ class App:
                 _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 self.hub.publish(jpeg.tobytes(), {
                     "t": t, "features": feats, "poses": poses, "state": state, "body": p is not None, "paused": paused, "missing": missing,
-                    "held": sorted(held), "send_keys": send, "fps": round(fps, 1), "feature_info": FEATURE_INFO,
+                    "held": sorted(held), "send_keys": send, "fps": round(fps, 1), "feature_info": FEATURE_INFO, "key_names": KEY_LIST,
                 })
         except Exception:
             traceback.print_exc()

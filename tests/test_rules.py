@@ -86,6 +86,17 @@ def test_from_dict_rejects_bad_op():
         Pose.from_dict({"name": "x", "key": "q", "conditions": [{"feature": "lean", "op": ">=", "value": 1}]})
 
 
+@pytest.mark.parametrize("key", ["spac", "", "Space", "f99"])
+def test_from_dict_rejects_unknown_key(key):
+    with pytest.raises(ValueError, match=f"unknown key {key!r}"):
+        Pose.from_dict({"name": "x", "key": key, "conditions": [{"feature": "lean", "op": ">", "value": 1}]})
+
+
+@pytest.mark.parametrize("key", ["q", "1", 1, "-", "space", "shift_l", "f12"])
+def test_from_dict_accepts_char_or_key_name(key):
+    assert Pose.from_dict({"name": "x", "key": key}).key == str(key)
+
+
 def test_hold_keeps_key_down_after_a_one_frame_pose():
     r = RuleEngine([Pose("punch", "n", [Condition("right_punch", ">", 500)], hold=0.3)])
     r.update({"right_punch": 800}, 10.0)

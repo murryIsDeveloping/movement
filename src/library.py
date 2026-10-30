@@ -12,6 +12,7 @@ from pathlib import Path
 import yaml
 
 from src import paths
+from src.keys import valid_key
 from src.rules import Pose
 
 BUILTIN = paths.resource_root() / "presets.yaml"
@@ -46,8 +47,18 @@ def load(builtin: Path | None = None, user: Path | None = None) -> dict:
     """Built-ins then the user's own, each preset and group flagged builtin true/false.
 
     A new build's built-ins can disagree with the user's file: a user preset or group sharing a new built-in's name
-    is renamed "<name> (mine)", and group members naming a preset that no longer exists are dropped."""
+    is renamed "<name> (mine)", and group members naming a preset that no longer exists are dropped.
+    Keys pynput can't press (older builds saved any text) are repaired: a preset's resets to "1", a group's is dropped."""
     b, u = _read(builtin or BUILTIN), _read(user or USER)
+    for p in (b.get("presets") or []) + (u.get("presets") or []):
+        if not valid_key(str(p.get("key", ""))):
+            print(f"library: preset {p['name']!r}: unknown key {p.get('key')!r}, reset to '1'")
+            p["key"] = "1"
+    for g in (b.get("groups") or []) + (u.get("groups") or []):
+        for m, k in list((g.get("keys") or {}).items()):
+            if str(k).strip() and not valid_key(str(k)):
+                print(f"library: group {g['name']!r}: unknown key {k!r} for {m!r}, dropped")
+                del g["keys"][m]
     for key in ("presets", "groups"):
         taken = {x["name"] for x in b.get(key) or []}
         for x in u.get(key) or []:
@@ -78,7 +89,7 @@ def save(lib: dict, edit_builtins: bool, builtin: Path | None = None, user: Path
 
 def validate(lib: dict) -> dict:
     """Normalised copy, or ValueError: a bad pose, a duplicate name, an unknown status, a group naming a missing
-    preset, or a built-in group naming a user preset (built-ins must stand alone)."""
+    preset or binding a key pynput can't press, or a built-in group naming a user preset (built-ins must stand alone)."""
     presets, builtins = [], {}
     for d in lib.get("presets") or []:
         pose = Pose.from_dict(d).to_dict()
@@ -104,5 +115,8 @@ def validate(lib: dict) -> dict:
             if builtin and not builtins[m]:
                 raise ValueError(f"built-in group {g['name']!r} names your preset {m!r}")
         keys = {m: str(k) for m, k in (g.get("keys") or {}).items() if m in members and str(k).strip()}   # stale keys dropped
+        for m, k in keys.items():
+            if not valid_key(k):
+                raise ValueError(f"group {g['name']!r}: unknown key {k!r} for {m!r}")
         groups.append({"name": g["name"], "notes": str(g.get("notes", "")), "presets": members, "keys": keys, "builtin": builtin})
     return {"presets": presets, "groups": groups}

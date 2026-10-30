@@ -4,6 +4,7 @@ from pathlib import Path
 import yaml
 
 from src import paths
+from src.keys import valid_key
 from src.rules import Pose
 
 ROOT = paths.resource_root()
@@ -44,3 +45,21 @@ def save(cfg: dict, path: Path = CONFIG) -> None:
 
 def poses_from(cfg: dict) -> list[Pose]:
     return [Pose.from_dict(d) for d in cfg.get("poses", [])]
+
+
+def poses_lenient(cfg: dict) -> list[Pose]:
+    """At startup: a bad pose is not fatal. A bad key (e.g. half-typed by an older build) keeps the pose, disabled with
+    key 1, so its tuning survives; anything else wrong skips it. cfg is updated to match, so an export or the next save
+    keeps the same poses."""
+    good, poses = [], []
+    for d in cfg.get("poses", []):
+        if not valid_key(str(d.get("key", ""))):
+            print(f"config.yaml: pose {d.get('name')!r}: unknown key {d.get('key')!r}, pose disabled with key 1")
+            d = {**d, "key": "1", "enabled": False}
+        try:
+            poses.append(Pose.from_dict(d))
+            good.append(d)
+        except (ValueError, KeyError, TypeError) as e:
+            print(f"config.yaml: {e}, pose skipped")
+    cfg["poses"] = good
+    return poses

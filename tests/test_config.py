@@ -47,3 +47,20 @@ def test_import_rejects_unknown_feature():
 def test_import_rejects_missing_poses():
     status, j, got = put_config("send_keys: true\n")
     assert status == 400 and got == []
+
+
+def test_import_rejects_unknown_key():
+    status, j, got = put_config(yaml.safe_dump({"poses": [{"name": "jump", "key": "spac"}]}))
+    assert status == 400 and "unknown key 'spac'" in j["error"] and got == []
+
+
+def test_startup_disables_bad_key_and_skips_broken_pose(tmp_path, capsys):
+    path = tmp_path / "config.yaml"
+    path.write_text(yaml.safe_dump({"poses": [{"name": "a", "key": "w"}, {"name": "b", "key": "spa"},
+                                              {"name": "c", "key": "x", "conditions": [{"feature": "nope", "op": ">", "value": 1}]}]}))
+    cfg = config.load(path)
+    poses = config.poses_lenient(cfg)
+    assert [(p.name, p.key, p.enabled) for p in poses] == [("a", "w", True), ("b", "1", False)]
+    assert [d["name"] for d in cfg["poses"]] == ["a", "b"] and cfg["poses"][1]["key"] == "1"   # an export or the next save matches
+    out = capsys.readouterr().out
+    assert "unknown key 'spa', pose disabled with key 1" in out and "unknown feature 'nope', pose skipped" in out

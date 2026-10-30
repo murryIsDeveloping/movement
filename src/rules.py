@@ -2,6 +2,7 @@
 from dataclasses import dataclass, field, asdict
 
 from src.features import FEATURES
+from src.keys import valid_key
 
 
 @dataclass
@@ -35,7 +36,10 @@ class Pose:
 
     @classmethod
     def from_dict(cls, d: dict) -> "Pose":
-        """Raises ValueError on an unknown feature or op, so a typo fails on import instead of never firing."""
+        """Raises ValueError on an unknown feature, op or key, so a typo fails on import instead of never firing."""
+        key = str(d["key"])
+        if not valid_key(key):   # pynput would raise mid-session
+            raise ValueError(f"pose {d['name']!r}: unknown key {key!r}")
         conds = []
         for c in d.get("conditions", []):
             if c["feature"] not in FEATURES:
@@ -43,7 +47,7 @@ class Pose:
             if c["op"] not in (">", "<"):
                 raise ValueError(f"pose {d['name']!r}: op must be '>' or '<', got {c['op']!r}")
             conds.append(Condition(c["feature"], c["op"], float(c["value"])))
-        return cls(name=d["name"], key=str(d["key"]), conditions=conds,
+        return cls(name=d["name"], key=key, conditions=conds,
                    margin=float(d.get("margin", 0.1)), enabled=bool(d.get("enabled", True)),
                    hold=max(0.0, float(d.get("hold", 0.0))), delay=max(0.0, float(d.get("delay", 0.0))),
                    preset=str(d.get("preset") or ""))
