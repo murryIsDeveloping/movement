@@ -131,6 +131,31 @@ def test_knee_lift():
     assert f["right_knee_lift"] < 0.05
 
 
+
+def test_held_knee_lift_lasts():
+    # tree pose: a knee held up for 30s used to fade in a few seconds as standing height caught up with it
+    e = FeatureEngine()
+    run(e, still())
+    p = standing(); p[L.LEFT_KNEE, 1] -= 0.1
+    first = e.update(p, 1.0)["left_knee_lift"]
+    f = run(e, [(1.0 + i / 30, p) for i in range(1, 900)])
+    assert f["left_knee_lift"] > 0.85 * first
+
+
+def test_held_squat_lasts():
+    e = FeatureEngine()
+    run(e, still())
+    f = run(e, [(1.0 + i / 30, hips_at(0.15 * min(i, 10) / 10)) for i in range(900)])   # squat, hold 30s
+    assert f["hip_drop"] > 0.65
+
+
+def test_stepping_back_is_not_a_knee_lift():
+    # knee height is in torso lengths, so a smaller body in the picture reads the same
+    e = FeatureEngine()
+    run(e, still())
+    f = run(e, [(1.0 + i / 30, standing(scale=0.8, offset=(0.1, 0.1))) for i in range(30)])
+    assert f["left_knee_lift"] < 0.05 and f["right_knee_lift"] < 0.05
+
 def test_step_cadence_when_jogging():
     e = FeatureEngine()
     frames = []

@@ -50,6 +50,8 @@ FEATURE_INFO = {k: {"desc": d, "unit": u, "sym": UNIT_SYMBOLS[u], "range": UNIT_
 MIN_STEP_GAP = 0.15   # seconds; real jogging is ~0.3s a step
 STILL_HIPS = 0.05     # torso; hips moving less than this over rise_window count as still
 CROUCHED = 0.25       # torso below standing height: a squat, not a posture shift
+KNEE_UP = 0.15        # torso; a knee lifted this far is up (a step, or a held lift)
+HELD_RATE = 0.0001    # per frame; a baseline's drift while the pose it measures is held: ~5 min to fade, so holds last
 
 def _angle(a, b, c) -> float:
     """Angle at b in degrees."""
@@ -115,11 +117,11 @@ class FeatureEngine:
         while self.hip_hist and t - self.hip_hist[0][0] > self.rise_window:
             self.hip_hist.popleft()
         # Drifting down follows small camera or posture shifts; it crawls in a held squat so the squat doesn't
-        # fade and standing up from it doesn't rise above a sunken baseline.
+        # fade (a 30s chair keeps 90% of its drop) and standing up from it doesn't rise above a sunken baseline.
         ys = [h[1] for h in self.hip_hist]
         if self.hip_base.v is None or u(max(ys) - min(ys)) < STILL_HIPS:
             crouched = self.hip_base.v is not None and u(hy + self.hip_base.v) > CROUCHED
-            self.hip_base.update(-hy, 0.001 if crouched else None)   # y is down: the baseline tracks the highest hips
+            self.hip_base.update(-hy, HELD_RATE if crouched else None)   # y is down: the baseline tracks the highest hips
         stand = -self.hip_base.v
         # a jump is above standing height AND a fast rise: walking back from the camera creeps above a baseline
         # that can't update while moving, but slowly
@@ -132,11 +134,13 @@ class FeatureEngine:
             f[f"{side}_knee_out"] = u(sign * (xy[knee, 0] - xy[hip, 0]))
             if seen(p, ankle):   # a guessed ankle off the bottom edge reads as a straight leg
                 f[f"{side}_knee_angle"] = _angle(xy[hip], xy[knee], xy[ankle])
-            rel = float(xy[knee, 1] - xy[hip, 1])
-            base = self.knee_base[knee].update(rel)
-            lift = u(base - rel)
+            # knee below hip, in torso lengths so stepping back from the camera doesn't read as a lift. The
+            # baseline drifts to follow posture shifts, but crawls while the knee is up so a held lift (tree) lasts.
+            rel = u(xy[knee, 1] - xy[hip, 1])
+            held = self.knee_base[knee].v is not None and self.knee_base[knee].v - rel > KNEE_UP
+            lift = self.knee_base[knee].update(rel, HELD_RATE if held else None) - rel
             f[f"{side}_knee_lift"] = lift
-            up = lift > 0.15
+            up = lift > KNEE_UP
             # a squat lifts both knees a few hundredths of a second apart: too quick to be a step
             quick = bool(self.steps) and t - self.steps[-1] < MIN_STEP_GAP
             if up and not self.knee_up[knee] and self.last_leg != knee and not quick:
