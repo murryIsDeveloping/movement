@@ -162,6 +162,18 @@
   .drill .big.bad { color:var(--bad); }
   .drill .sub { font-size:22px; color:var(--dim); text-align:center; min-height:1.4em; }
   .drill .results { width:min(640px, 100%); }
+  .drill .cue { display:flex; align-items:center; gap:16px; }
+  .drill .cue .fig svg { width:90px; margin:0; }
+  .drill.learn .cue .fig svg { width:150px; max-width:150px; }
+  .drill .checks { width:auto; margin:0; font-size:15px; }
+  .drill .checks tr.ok td:first-child { color:var(--on); }
+  .drill:not(.learn) .checks, .drill:not(.learn) #drillSkip { display:none; }
+  .drill .setup { display:none; flex-direction:column; gap:12px; width:min(320px, 100%); margin-top:10vh; font-size:18px; }
+  .drill .setup label { display:flex; align-items:center; gap:8px; }
+  .drill .setup input { width:80px; margin-left:auto; font-size:18px; }
+  .drill .setup .u { width:2em; color:var(--dim); }
+  .drill.setup .setup { display:flex; }
+  .drill.setup > :not(.drill-head):not(.setup) { display:none; }
   @keyframes hop { 0%, 60%, 100% { transform:translateY(0); } 30% { transform:translateY(var(--h)); } }
   @keyframes jogA { 0% { opacity:1; } 50% { opacity:0; } }
   @keyframes jogB { 0% { opacity:0; } 50% { opacity:1; } }
@@ -189,7 +201,8 @@
   <div class="right">
     <div class="bar" style="margin-top:0">
       <h2 style="margin:0; flex:1">Poses</h2>
-      <button id="drillBtn" title="Test yourself: prompts a random pose every few seconds for a minute and scores it">drill</button>
+      <button id="learnBtn" title="Learn the poses: goes through each active pose in order, showing how to do it, until you've hit it a few times">learn</button>
+      <button id="drillBtn" title="Test yourself: prompts random poses for as long as you set, and scores them. Long with a short rest makes it a workout.">drill</button>
       <button id="libBtn" title="Preset poses (tested and untested) and groups of them to load">library</button>
       <button id="clashBtn" title="Poses on the same body part that can fire together">clashes</button>
       <button class="primary" id="add">+ new pose</button>
@@ -213,9 +226,18 @@
   <div id="library"></div>
 </aside>
 <div class="drill" id="drill">
-  <div class="drill-head"><span class="clock"></span><span class="pill" id="drillKeys" title="Turned off for the drill, so poses don't type into this page. Set back when the drill ends.">keys off</span><button id="drillClose" title="stop (Esc)">×</button></div>
+  <div class="drill-head"><span class="clock"></span><span class="pill" id="drillKeys" title="Turned off for the drill, so poses don't type into this page. Set back when the drill ends.">keys off</span><button id="drillSkip" title="give up on this pose and go to the next">skip</button><button id="drillClose" title="stop (Esc)">×</button></div>
+  <div class="setup">
+    <h2>Drill</h2>
+    <p class="small">Random poses from your active ones until the time's up. Long with a short rest makes it a workout.</p>
+    <label>length <input id="drillMin" type="number" min="0.5" max="60" step="0.5"><span class="u">min</span></label>
+    <label title="neutral this long (nothing firing) before the next pose">rest <input id="drillRest" type="number" min="0" max="30" step="0.5"><span class="u">s</span></label>
+    <label title="a pose not hit in this long counts as a miss">time to hit <input id="drillHit" type="number" min="2" max="60" step="1"><span class="u">s</span></label>
+    <button class="primary" id="drillStart">start</button>
+  </div>
   <div class="big"></div>
   <div class="sub"></div>
+  <div class="cue"><div class="fig"></div><table class="trace checks"></table></div>
   <img alt="camera">
   <div class="results"></div>
 </div>
@@ -385,7 +407,11 @@ const libPanel = document.getElementById('libPanel');
 document.getElementById('libBtn').onclick = () => { clashPanel.classList.remove('open'); libPanel.classList.toggle('open'); renderLibrary(); };
 document.getElementById('libClose').onclick = () => libPanel.classList.remove('open');
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { clashPanel.classList.remove('open'); libPanel.classList.remove('open'); endDrill(); } });
-document.getElementById('drillBtn').onclick = startDrill;
+document.getElementById('drillBtn').onclick = () => openDrillSetup();
+document.getElementById('drillStart').onclick = () => startDrill();
+document.querySelector('#drill .setup').onkeydown = e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') startDrill(); };   // a button's Enter clicks it
+document.getElementById('learnBtn').onclick = () => startDrill(learnPool());
+document.getElementById('drillSkip').onclick = () => drillSkip();
 document.getElementById('drillClose').onclick = () => endDrill();
 document.getElementById('reset').onclick =() => send({ type: 'reset_baselines' });
 document.getElementById('quit').onclick = () => { send({ type: 'quit' }); document.body.innerHTML = '<h1 style="padding:2rem">Movement stopped. Close this tab.</h1>'; };

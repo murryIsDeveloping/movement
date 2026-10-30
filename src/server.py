@@ -104,10 +104,11 @@ async def library_put(request):
 
 
 async def recording_post(request):
-    """Saves a drill run (prompts, hits, every frame's features) for looking at later."""
+    """Saves a drill or learn run (prompts, hits, every frame's features) for looking at later."""
     data = await request.json()
     RECORDINGS.mkdir(exist_ok=True)
-    path = RECORDINGS / f"drill-{time.strftime('%Y%m%d-%H%M%S')}.json"
+    mode = "learn" if data.get("mode") == "learn" else "drill"
+    path = RECORDINGS / f"{mode}-{time.strftime('%Y%m%d-%H%M%S')}.json"
     path.write_text(json.dumps(data), encoding="utf-8")
     print(f"recording saved: {path}")
     return web.json_response({"ok": True, "path": str(path)})

@@ -1,5 +1,5 @@
-// Loaded before the main script in index.html. Uses its globals (poses, info, esc, renderPoses, scheduleSave) and
-// figure.js's figureSVG at call time.
+// Loaded before the main script in index.html. Uses its globals (poses, info, esc, renderPoses, scheduleSave, libPanel),
+// figure.js's figureSVG and drill.js's startDrill at call time.
 // ---------- preset library: tested/untested presets, and groups of them to load as the active poses ----------
 // The library is edited here and sent whole to the server (PUT /library), which validates and saves it.
 // Built-in presets and groups (builtin: true) ship with the app and are read-only: use, clone, or put them in your
@@ -61,6 +61,18 @@ function usePresets(names, replace, keys = {}) {
   }
   poses.push(...add);
   renderPoses(); scheduleSave(); renderLibrary();
+}
+
+// Learn mode over a group's poses, in the group's order. Only active poses can fire, so a group that isn't
+// all active yet is loaded first (which asks before replacing the active poses). A pose counts by its preset link,
+// or failing that its name.
+function learnGroup(g) {
+  const find = n => { const i = poses.findIndex(p => p.preset === n); return i >= 0 ? i : poses.findIndex(p => p.name === n); };
+  const pool = () => g.presets.map(find);
+  if (pool().includes(-1)) usePresets(g.presets, true, g.keys);
+  if (pool().includes(-1)) return;   // load declined
+  libPanel.classList.remove('open');
+  startDrill(pool());
 }
 
 function newPreset() {
@@ -226,7 +238,7 @@ function renderLibrary() {
         ${ed ? `<input class="name" value="${esc(g.name)}" title="group name">` : `<b class="name">${esc(g.name)}</b>`}
         ${g.builtin ? '<span class="tag">built-in</span>' : ''}
         <span class="small">${g.presets.length} poses${untested ? `, ${untested} untested` : ''}</span>
-        <button class="load primary">load</button><button class="add">add</button><button class="cl">clone</button>${ed ? '<button class="danger del">delete</button>' : ''}
+        <button class="load primary">load</button><button class="add">add</button><button class="learn" title="Go through each pose in this group one by one, learning it (loads the group first if it isn't active)">learn</button><button class="cl">clone</button>${ed ? '<button class="danger del">delete</button>' : ''}
       </div>
       ${ed ? `<textarea class="notes" rows="1" placeholder="notes: game, class, what each key does">${esc(g.notes)}</textarea>` : g.notes ? `<p class="small">${esc(g.notes)}</p>` : ''}
       <div class="chips">${g.presets.map(n => {
@@ -237,6 +249,7 @@ function renderLibrary() {
       }).join('')}</div>`;
     el.querySelector('.load').onclick = () => usePresets(g.presets, true, g.keys);
     el.querySelector('.add').onclick = () => usePresets(g.presets, false, g.keys);
+    el.querySelector('.learn').onclick = () => learnGroup(g);
     el.querySelector('.cl').onclick = () => cloneGroup(g);
     gs.appendChild(el);
     if (!ed) continue;
