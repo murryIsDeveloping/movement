@@ -92,13 +92,18 @@ function figSearch(q, keys, cost) {
   return cur;
 }
 
-// From the resting pose, once per elbow-bend direction; keep the cheapest.
+// From the resting pose, once per elbow-bend direction; keep the cheapest. Hands together overhead (steeple, crescent)
+// can't be reached from arms down, one step at a time, so a miss tries again from arms up.
+const FIG_ARMS_UP = { raiseL: 170, raiseR: 170, angleL: 120, angleR: 120 };
 function solveFigure(conds) {
   let best = null, bestCost = Infinity;
-  for (const bendL of [1, -1]) for (const bendR of [1, -1]) {
-    const q = { ...FIG_REST, bendL, bendR };
-    const cur = figSearch(q, Object.keys(FIG_BOUNDS), q => figCost(q, conds));
-    if (cur < bestCost) { bestCost = cur; best = q; }
+  for (const start of [{}, FIG_ARMS_UP]) {
+    for (const bendL of [1, -1]) for (const bendR of [1, -1]) {
+      const q = { ...FIG_REST, ...start, bendL, bendR };
+      const cur = figSearch(q, Object.keys(FIG_BOUNDS), q => figCost(q, conds));
+      if (cur < bestCost) { bestCost = cur; best = q; }
+    }
+    if (!figUnmet(conds, best).length) break;
   }
   return best;
 }
