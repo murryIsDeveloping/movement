@@ -48,3 +48,12 @@ def test_rejected_config_is_sent_back():
     bad = {"poses": [{"name": "jab", "key": "spcae", "conditions": []}]}
     assert ws_config(hub, bad) == {"type": "error", "error": "pose 'jab': unknown key 'spcae'"}
     assert ws_config(hub, {"poses": [{"name": "jab", "key": "space"}]}) is None and len(got) == 1
+
+
+def test_static_files_are_revalidated():
+    # a reload rechecks the page but not its scripts: an updated drill.js kept running the old code
+    async def run():
+        async with TestClient(TestServer(make_app(Hub()))) as client:
+            r = await client.get("/static/drill.js")
+            return r.status, r.headers.get("Cache-Control")
+    assert asyncio.run(run()) == (200, "no-cache")

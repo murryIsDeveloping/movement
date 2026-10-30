@@ -158,6 +158,12 @@ async def _start_bg(app):
     app["bg"] = asyncio.create_task(broadcaster(app))
 
 
+async def _no_stale_static(request, response):
+    """A reload revalidates the page but not its scripts, so without this an updated drill.js kept running the old code."""
+    if request.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "no-cache"
+
+
 def make_app(hub: Hub) -> web.Application:
     app = web.Application(client_max_size=64 * 1024 ** 2)   # a minute of drill frames is over the default 1 MB
     app["hub"] = hub
@@ -172,4 +178,5 @@ def make_app(hub: Hub) -> web.Application:
         app.router.add_post("/recording", recording_post)
     app.router.add_static("/static", STATIC)
     app.on_startup.append(_start_bg)
+    app.on_response_prepare.append(_no_stale_static)
     return app
