@@ -133,7 +133,26 @@ function openDrillSetup() {
   el.classList.add('open', 'setup'); el.classList.remove('learn');
   el.querySelector('.clock').textContent = '';
   drill = { el, phase: 'setup' };
+  drillPlan();
   document.getElementById('drillStart').focus();
+}
+
+// Under the setup's hold and reps: which active poses each one applies to with the settings as they stand, since a pose
+// is held, repped or kept up by its kind and the positions choice. A row no pose uses is dimmed.
+function drillPlan() {
+  const val = id => document.getElementById(id).value, holdable = val('drillHoldable') === '1';
+  const names = list => list.length > 4 ? `${list.slice(0, 3).join(', ')} +${list.length - 3} more` : list.join(', ');
+  const kept = [], held = [], reps = [];
+  poses.forEach((p, i) => {
+    if (!drillable(i)) return;
+    (sustained(i) ? kept : canHold(i) && holdable ? held : reps).push(esc(p.name));
+  });
+  const lines = [held.length && `<b>held ${esc(val('drillHold'))} s:</b> ${names(held)}`,
+    reps.length && `<b>${esc(val('drillReps'))} reps:</b> ${names(reps)}`,
+    kept.length && `<b>kept up ${esc(val('drillHold'))} s:</b> ${names(kept)}`].filter(Boolean);
+  document.getElementById('drillPlan').innerHTML = lines.length ? lines.join('<br>') : 'no enabled poses to drill';
+  document.getElementById('drillHold').closest('label').classList.toggle('unused', !held.length && !kept.length);
+  document.getElementById('drillReps').closest('label').classList.toggle('unused', !reps.length);
 }
 
 // learn: a list of pose indices to go through in order; null for the timed random drill, with the settings from the
