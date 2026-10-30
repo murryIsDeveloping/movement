@@ -11,6 +11,7 @@ let lib = { presets: [], groups: [] };
 const editable = x => !x.builtin;
 const libView = { status: 'all', group: '', search: '' };
 const picked = new Set();   // preset names ticked in the panel, for "group selected"
+let picking = false;        // the tick boxes are shown: "select to group" is on
 const TUNE_FIELDS = ['conditions', 'margin', 'enabled', 'hold', 'delay'];
 const copy = o => JSON.parse(JSON.stringify(o));
 const poseFields = p => Object.fromEntries(TUNE_FIELDS.map(k => [k, copy(p[k])]));
@@ -237,16 +238,21 @@ function renderLibrary() {
       <select class="fs">${['all', 'tested', 'untested', 'built-in', 'mine'].map(s => `<option ${s === libView.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
       <select class="fg"><option value="">any group</option>${lib.groups.map(g => `<option ${g.name === libView.group ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select>
       <input class="fq" placeholder="search" value="${esc(libView.search)}">
+      <button class="pk" title="Tick presets to make a new group of them">select to group</button>
       <button class="primary np" title="New untested preset, also added to the active poses for tuning">+ new preset</button>
     </div>
-    ${picked.size ? `<div class="bar"><span class="small">${picked.size} ticked</span><button class="primary gp">+ group from ticked</button><button class="pc">clear</button></div>` : ''}
+    ${picking ? `<div class="bar picking"><span class="small">${picked.size} ticked</span>
+      <button class="primary gp" ${picked.size ? '' : 'disabled'}>+ group from ticked</button><button class="pc">cancel</button></div>` : ''}
     <p class="small"><b>use</b> adds a preset to the active poses. Tune it there with the live values, then <b>→ library</b> on the pose saves it back.</p>
     <div class="presets"></div>`;
   root.querySelector('.ng').onclick = () => addGroup('new group', []);
   root.querySelector('.na').onclick = groupFromActive;
-  if (picked.size) {
-    root.querySelector('.gp').onclick = () => { addGroup('new group', lib.presets.map(p => p.name).filter(n => picked.has(n))); picked.clear(); renderLibrary(); };
-    root.querySelector('.pc').onclick = () => { picked.clear(); renderLibrary(); };
+  const stopPicking = () => { picked.clear(); picking = false; };
+  root.querySelector('.pk').onclick = () => { picking = true; renderLibrary(); };
+  root.querySelector('.pk').hidden = picking;
+  if (picking) {
+    root.querySelector('.gp').onclick = () => { const names = lib.presets.map(p => p.name).filter(n => picked.has(n)); stopPicking(); addGroup('new group', names); };
+    root.querySelector('.pc').onclick = () => { stopPicking(); renderLibrary(); };
   }
   root.querySelector('.np').onclick = newPreset;
   root.querySelector('.fs').onchange = e => { libView.status = e.target.value; renderLibrary(); };
@@ -305,7 +311,7 @@ function renderLibrary() {
       <div class="fig">${presetFigure(pr.conditions)}</div>
       <div>
         <div class="pose-head">
-          <input type="checkbox" class="pick" title="tick presets, then + group from ticked" ${picked.has(pr.name) ? 'checked' : ''}>${ed ? `
+          ${picking ? `<input type="checkbox" class="pick" title="tick presets, then + group from ticked" ${picked.has(pr.name) ? 'checked' : ''}>` : ''}${ed ? `
           ${pr.builtin ? `<b class="name">${esc(pr.name)}</b>` : `<input class="name" value="${esc(pr.name)}" title="preset name">`}
           <select class="st" title="flip to tested once it works in a drill">${['tested', 'untested'].map(s => `<option ${s === pr.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
           <span class="small">default key</span><input class="key" value="${esc(pr.key)}" title="click, then press the key: space, f1, left shift... Letters, digits and names the browser can't capture (tab, num_lock): type, then Enter. Esc while typing cancels. Groups can bind it to another key.">` : `
@@ -323,7 +329,7 @@ function renderLibrary() {
           <span class="small">${pr.conditions.length} condition${pr.conditions.length === 1 ? '' : 's'}${pr.delay ? `, delay ${pr.delay}s` : ''}${pr.hold ? `, hold ${pr.hold}s` : ''}</span>
         </div>
       </div>`;
-    el.querySelector('.pick').onchange = e => { if (e.target.checked) picked.add(pr.name); else picked.delete(pr.name); renderLibrary(); };
+    if (picking) el.querySelector('.pick').onchange = e => { if (e.target.checked) picked.add(pr.name); else picked.delete(pr.name); renderLibrary(); };
     el.querySelectorAll('.chips button').forEach(b => b.onclick = () => { removeFromGroup(lib.groups.find(x => x.name === b.dataset.g), pr.name); saveLibrary(); });
     const tog = el.querySelector('.tog');
     if (tog) tog.onchange = e => { lib.groups.find(g => g.name === e.target.value).presets.push(pr.name); saveLibrary(); };
