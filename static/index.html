@@ -203,6 +203,8 @@
   .drill .setup .u { width:2em; color:var(--dim); }
   .drill .setup h2 { font-size:22px; color:var(--text); letter-spacing:0; text-transform:none; margin:0; }
   .drill .setup p.small { margin:0 0 8px; font-size:14px; }
+  .drill .setup p.plan { margin:-4px 0 0; line-height:1.5; }
+  .drill .setup label.unused { opacity:.4; }
   .drill .setup button.primary { margin-top:8px; padding:10px; font-size:18px; font-weight:600; }
   .drill.setup .setup { display:flex; }
   .drill.setup > :not(.drill-head):not(.setup) { display:none; }
@@ -283,7 +285,8 @@
     <label title="a pose not hit in this long counts as a miss: to get into a hold, or between reps">time to hit <input id="drillHit" type="number" min="2" max="60" step="1"><span class="u">s</span></label>
     <label title="poses you can stay in (chair, arm out, squat): hold them, or do them as reps (a squat each time you sink into it). Poses that need motion (jump, punch) are always reps; ones you keep going (jog) are kept up for the hold time.">positions <select id="drillHoldable"><option value="1">hold</option><option value="0">reps</option></select><span class="u"></span></label>
     <label title="seconds to hold a position">hold <input id="drillHold" type="number" min="2" max="120" step="1"><span class="u">s</span></label>
-    <label title="reps per prompt for movements">reps <input id="drillReps" type="number" min="1" max="50" step="1"><span class="u"></span></label>
+    <label title="reps per prompt for movements">reps <input id="drillReps" type="number" min="1" max="50" step="1"><span class="u">×</span></label>
+    <p class="small plan" id="drillPlan"></p>
     <button class="primary" id="drillStart">start</button>
   </div>
   <div class="big"></div>
@@ -532,6 +535,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') { clashPanel
 document.getElementById('drillBtn').onclick = () => openDrillSetup();
 document.getElementById('drillStart').onclick = () => startDrill();
 document.querySelector('#drill .setup').onkeydown = e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') startDrill(); };   // a button's Enter clicks it
+document.querySelector('#drill .setup').oninput = () => drillPlan();
 document.getElementById('learnBtn').onclick = () => startDrill(learnPool());
 document.getElementById('drillSkip').onclick = () => drillSkip();
 document.getElementById('drillClose').onclick = () => endDrill();
