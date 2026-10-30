@@ -1,4 +1,4 @@
-"""Pose → keyboard for WoW, with a browser GUI for defining poses.
+"""Pose → keyboard (and mouse, in camera mode) for WoW, with a browser GUI for defining poses.
 
   python app.py          start camera + GUI at http://localhost:8765
 """
@@ -17,8 +17,9 @@ from src import paths
 paths.setup_frozen_env()
 from src.camera import Camera
 from src.features import FEATURE_INFO, FeatureEngine
-from src.keys import KEY_NAMES, KeyState, pynput_keyboard
+from src.keys import KEY_NAMES, MOUSE_BUTTONS, KeyState, pynput_keyboard
 from src.landmarks import FrameWatch
+from src.look import Look, LookOutput, system_mouse, toggle_pose
 from src.overlay import draw_skeleton
 from src.pose import PoseTracker
 from src.rules import RuleEngine
@@ -36,6 +37,8 @@ class App:
         self.features = FeatureEngine()
         self.frame_watch = FrameWatch(float(self.cfg.get("pause_after", 0.5)))
         self.keys = KeyState(pynput_keyboard())
+        self.look = Look()
+        self.mouse = LookOutput(system_mouse())
         self.hub = Hub()
         self.hub.on_config = self.set_config
         self.hub.on_reset = self.features.reset_baselines
@@ -48,6 +51,8 @@ class App:
     def set_config(self, new: dict):
         new = dict(new)
         send = new.pop("send_keys", None)
+        if "look" in new:   # the GUI sends only what it changes (enabled, toggle)
+            new["look"] = {**self.cfg["look"], **new["look"]}
         cfg = {**self.cfg, **new}
         rules = RuleEngine(cfgmod.poses_from(cfg))   # raises on a bad pose before anything changes
         with self.lock:
@@ -57,10 +62,15 @@ class App:
                 self.send_keys = bool(send)
             if not self.send_keys:
                 self.keys.release_all()
+                self.mouse.release()
+            if not self.cfg["look"]["enabled"]:
+                self.look.stop()
+                self.mouse.release()
 
     def quit(self):
         self.running = False
         self.keys.release_all()
+        self.mouse.release()
         threading.Timer(0.3, lambda: os._exit(0)).start()
 
     def trust_loop(self):
@@ -78,11 +88,13 @@ class App:
             tracker = PoseTracker(cfgmod.ROOT / self.cfg["model"])
             t0 = time.monotonic()
             fps_t, fps_n, fps = 0.0, 0, 0.0   # fps_t in the same clock as t
+            last_t = 0.0
             while self.running:
                 frame = camera.read()
                 if frame is None:
                     continue
                 t = time.monotonic() - t0
+                dt, last_t = min(t - last_t, 0.1), t   # a stalled frame doesn't fling the camera
                 p = tracker.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB), int(t * 1000))
                 # Out of frame for a while (walked up to the camera): no features, so no baselines learnt from a
                 # half-seen body, and every key up at once, holds included. A blip out of frame carries on as normal.
@@ -93,11 +105,29 @@ class App:
                 with self.lock:
                     if paused:
                         self.rules.release()
+                        self.look.stop()
                     state = self.rules.update(feats, t)
-                    held = self.rules.keys()
+                    look_cfg = self.cfg["look"]
+                    toggle = toggle_pose(self.rules.poses, look_cfg)
+                    held = self.rules.keys(skip=toggle)
                     poses = [pz.to_dict() for pz in self.rules.poses]
                     send = self.send_keys
-                self.keys.apply(held if send else set())
+                    if look_cfg["enabled"]:
+                        self.look.update(feats, t, look_cfg, toggle in self.rules.active)
+                    button = look_cfg["button"] if look_cfg["button"] in ("left", "right") else None
+                    # camera mode pauses the game poses but not mouse clicks (bar the button the drag holds), and a
+                    # toggle's clap must not reach the game as the clap pose
+                    if self.look.locked(t, look_cfg):
+                        out = set()
+                    elif self.look.on:
+                        out = {k for k in held if k in MOUSE_BUTTONS and k != f"mouse_{button}"}
+                    else:
+                        out = held
+                    look = {"enabled": look_cfg["enabled"], "on": self.look.on, "stick": self.look.stick, "toggle": look_cfg["toggle"],
+                            "button": look_cfg["button"], "deadzone": look_cfg["deadzone"], "reach": look_cfg["reach"]}
+                    moving, velocity = send and self.look.on, self.look.velocity
+                self.keys.apply(out if send else set())
+                self.mouse.apply(moving, button, velocity, dt)
 
                 fps_n += 1
                 if t - fps_t > 1.0:
@@ -106,7 +136,7 @@ class App:
                 _, jpeg = cv2.imencode(".jpg", frame, [cv2.IMWRITE_JPEG_QUALITY, 70])
                 self.hub.publish(jpeg.tobytes(), {
                     "t": t, "features": feats, "poses": poses, "state": state, "body": p is not None, "paused": paused, "missing": missing,
-                    "held": sorted(held), "send_keys": send, "fps": round(fps, 1), "feature_info": FEATURE_INFO, "key_names": KEY_LIST,
+                    "held": sorted(held), "blocked": sorted(held - out), "look": look, "send_keys": send, "fps": round(fps, 1), "feature_info": FEATURE_INFO, "key_names": KEY_LIST,
                     "trusted": self.trusted,
                 })
         except Exception:
@@ -114,6 +144,7 @@ class App:
             self.hub.publish(None, {"error": traceback.format_exc().strip().splitlines()[-1]})
         finally:
             self.keys.release_all()
+            self.mouse.release()
             if camera:
                 camera.release()
             if tracker:
@@ -134,6 +165,7 @@ class App:
         finally:
             self.running = False
             self.keys.release_all()
+            self.mouse.release()
 
 
 if __name__ == "__main__":

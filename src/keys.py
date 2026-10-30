@@ -1,4 +1,4 @@
-"""Hold/release keys to mirror active poses. Backend injected for tests."""
+"""Hold/release keys (and mouse buttons) to mirror active poses. Backend injected for tests."""
 import traceback
 
 # pynput's Key names across platforms, listed so validation needs no keyboard backend.
@@ -8,10 +8,13 @@ KEY_NAMES = frozenset(
     "home insert left menu num_lock page_down page_up pause print_screen right scroll_lock shift shift_l shift_r "
     "space tab up media_next media_play_pause media_previous media_stop media_volume_down media_volume_mute "
     "media_volume_up".split()) | {f"f{i}" for i in range(1, 25)}
+# Mouse buttons a pose can hold like a key: mouse_left is pynput's Button.left. They stay live in camera mode.
+MOUSE_BUTTONS = frozenset({"mouse_left", "mouse_right", "mouse_middle"})
+KEY_NAMES |= MOUSE_BUTTONS
 
 
 def valid_key(k) -> bool:
-    """A single character or a pynput Key name: anything else makes pynput raise."""
+    """A single character, a pynput Key name or a mouse button: anything else makes pynput raise."""
     return isinstance(k, str) and (len(k) == 1 or k in KEY_NAMES)
 
 
@@ -45,14 +48,22 @@ class KeyState:
 
 def pynput_keyboard():
     from pynput.keyboard import Controller, Key
+    from pynput.mouse import Button, Controller as Mouse
 
-    ctl = Controller()
+    ctl, mouse = Controller(), Mouse()
 
     def resolve(k: str):
-        return getattr(Key, k) if hasattr(Key, k) else k
+        if k in MOUSE_BUTTONS:
+            return mouse, Button[k.removeprefix("mouse_")]
+        return ctl, getattr(Key, k) if hasattr(Key, k) else k
 
     class _KB:
-        def press(self, k): ctl.press(resolve(k))
-        def release(self, k): ctl.release(resolve(k))
+        def press(self, k):
+            dev, key = resolve(k)
+            dev.press(key)
+
+        def release(self, k):
+            dev, key = resolve(k)
+            dev.release(key)
 
     return _KB()

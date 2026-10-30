@@ -3,7 +3,7 @@ from pathlib import Path
 
 import yaml
 
-from src import library, paths
+from src import library, look, paths
 from src.keys import valid_key
 from src.rules import Pose
 
@@ -14,6 +14,7 @@ DEFAULT = {
     "camera": {"index": 0, "width": 640, "height": 480},
     "model": "models/pose_landmarker_lite.task",
     "port": 8765,
+    "look": look.DEFAULT,
     "poses": [
         {"name": "jog", "key": "w", "conditions": [{"feature": "step_cadence", "op": ">", "value": 1.0}]},
         {"name": "jump", "key": "space", "conditions": [{"feature": "hip_rise", "op": ">", "value": 0.15}]},

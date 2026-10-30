@@ -40,6 +40,7 @@ def test_all_conditions_required():
     assert r.keys() == {"e"}
     r.update({"right_arm_raise": 160, "hip_drop": 0, "left_arm_raise": 160}, tick())
     assert r.keys() == {"e", "3"}
+    assert r.keys(skip=0) == {"3"}   # camera mode's toggle pose: on, but its key isn't sent
 
 
 def test_hysteresis_default_margin():

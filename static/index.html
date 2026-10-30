@@ -18,6 +18,11 @@
             background:rgba(20,22,24,.7); border-radius:8px; color:var(--warn); font-size:28px; font-weight:800; padding:12px; }
   .paused.on { display:flex; }
   .paused small { font-size:15px; font-weight:400; color:var(--text); margin-top:6px; }
+  .look { position:absolute; top:10px; left:10px; display:none; align-items:center; gap:10px; padding:8px 12px; border-radius:8px;
+          background:rgba(20,22,24,.8); border:2px solid var(--accent); color:var(--accent); font-size:22px; font-weight:800; letter-spacing:1px; }
+  .look.on { display:flex; }
+  .look small { display:block; font-size:13px; font-weight:400; letter-spacing:0; color:var(--text); }
+  .look svg { width:72px; height:72px; }
   .bar { display:flex; gap:12px; align-items:center; margin-top:10px; flex-wrap:wrap; }
   .pill { padding:4px 10px; border-radius:999px; background:var(--panel); border:1px solid var(--line); color:var(--dim); }
   .pill.on { color:#0b1; border-color:var(--on); color:var(--on); }
@@ -36,7 +41,7 @@
   .toggle input { width:18px; height:18px; }
   .held { font-size:28px; font-weight:700; min-height:40px; margin-top:8px; letter-spacing:2px; }
   .held span { display:inline-block; background:var(--on); color:#062; padding:2px 14px; border-radius:8px; margin-right:8px; }
-  .held.off span { background:var(--off); color:var(--text); text-decoration:line-through; }
+  .held.off span, .held span.held-back { background:var(--off); color:var(--text); text-decoration:line-through; }
   .held small { font-size:15px; font-weight:400; letter-spacing:0; color:var(--dim); }
   .keys { position:relative; padding:8px 20px; border-radius:8px; border:2px solid var(--off); color:var(--dim); font-size:18px; cursor:pointer; user-select:none; }
   .keys.on { background:var(--on); border-color:var(--on); color:#062; font-weight:800; letter-spacing:1px; }
@@ -53,7 +58,7 @@
   input.invalid { border-color:var(--bad); }
   input.hold, input.delay { width:52px; text-align:center; }
   .pose > .pose-head input.name { font-size:16px; }
-  .pose > .pose-head input.key { font-size:16px; font-weight:700; }
+  .pose > .pose-head input.key { font-size:16px; font-weight:700; width:120px; }   /* fits mouse_right */
   .pose-tools { display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:6px; font-size:12px; color:var(--dim); }
   .pose-tools button { font-size:12px; padding:2px 6px; color:var(--dim); }
   .pose-tools input { font-size:12px; padding:2px 4px; }
@@ -132,6 +137,8 @@
   .clash .fig svg { margin:0; }
   .clash code { color:var(--warn); }
   .side.wide { width:min(600px, 100vw); }
+  .badge.looktag { color:var(--accent); border-color:var(--accent); cursor:default; }
+  input.key.struck { text-decoration:line-through; color:var(--dim); }
   .badge { font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid var(--line); color:var(--dim); cursor:pointer; user-select:none; }
   .badge.tested { color:var(--on); border-color:var(--on); }
   .badge.untested, .badge.changed { color:var(--warn); border-color:var(--warn); }
@@ -187,12 +194,19 @@
 <body>
 <div class="wrap">
   <div class="left">
-    <div class="camwrap" id="camwrap"><img id="cam" src="/stream" alt="camera"><div class="paused" id="paused"></div></div>
+    <div class="camwrap" id="camwrap"><img id="cam" src="/stream" alt="camera"><div class="paused" id="paused"></div>
+      <div class="look" id="look"><svg viewBox="-50 -50 100 100"><circle r="45" fill="none" stroke="currentColor" stroke-opacity=".5"/>
+        <circle id="lookDead" r="10" fill="currentColor" fill-opacity=".2"/><circle id="lookDot" r="8" fill="var(--text)"/></svg>
+        <div>CAMERA<small>right hand moves the mouse · <span id="lookExit">clap</span> to exit</small></div></div></div>
     <div class="bar">
       <span class="pill" id="body">no body</span>
       <span class="pill" id="fps">0 fps</span>
       <label class="keys" id="keys" title="Send held keys to the focused game window"><input type="checkbox" id="send"><span>keys off</span></label>
       <label class="toggle small" title="Beep when tracking pauses (low double) and resumes (high), while keys are on: you can hear it with the game focused"><input type="checkbox" id="sound" checked>sound</label>
+      <label class="toggle small" title="Clap (or the pose picked next to this) to turn camera mode on and off. While it's on, the right mouse button is held (WoW's mouselook: your character turns with the camera) and your right hand steers the camera like a thumbstick, from a neutral spot at your waist, elbow bent. Game poses pause until you toggle it off again. Sent only while keys are on."><input type="checkbox" id="lookOn">camera mode</label>
+      <select id="lookToggle" class="small" title="What turns camera mode on and off: a clap, or one of your poses. A pose picked here never sends its key; tune it like any other pose (its delay stops it toggling by accident)."></select>
+      <select id="lookButton" class="small" title="What your right hand does in camera mode. Right click drag: WoW's mouselook, your character turns with the camera. Left click drag: the camera turns alone. Mouse move: moves the pointer, no button held, for clicking things with a mouse-button pose.">
+        <option value="right">right click drag</option><option value="left">left click drag</option><option value="none">mouse move</option></select>
       <span class="pill bad" id="untrusted" title="System Settings › Privacy &amp; Security › Accessibility" hidden>keys blocked: grant Accessibility to Movement</span>
       <button id="reset" title="Re-learn standing height for hip_drop / knee lifts">reset baselines</button>
       <button id="quit" title="Stop the camera and exit the app">quit app</button>
@@ -278,6 +292,7 @@ const KEY_MAP = { ' ': 'space', Enter: 'enter', Tab: 'tab', Escape: 'esc', Backs
   MediaTrackNext: 'media_next', MediaTrackPrevious: 'media_previous', MediaStop: 'media_stop',
   AudioVolumeUp: 'media_volume_up', AudioVolumeDown: 'media_volume_down', AudioVolumeMute: 'media_volume_mute' };
 const SIDED = { Shift: 'shift', Control: 'ctrl', Alt: 'alt', Meta: 'cmd' };   // + _l/_r from e.location
+const MOUSE_MAP = { 0: 'mouse_left', 1: 'mouse_middle', 2: 'mouse_right' };   // e.button → MOUSE_BUTTONS in src/keys.py
 const MODS = new Set([...Object.keys(SIDED), 'AltGraph']);
 const EDITING = new Set(['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter']);
 const keyName = e => SIDED[e.key] ? SIDED[e.key] + (e.location === 2 ? '_r' : '_l') : KEY_MAP[e.key]
@@ -288,6 +303,7 @@ const keyName = e => SIDED[e.key] ? SIDED[e.key] + (e.location === 2 ? '_r' : '_
 // saves that, not each keystroke, since 'spa' isn't a key, and a library save re-renders and would drop focus mid-name.
 // live (pose cards, whose saves don't re-render): a first character is also saved at once. Escape mid-name cancels.
 // Tab moves focus as usual (type tab to bind it); Ctrl/Cmd+key are left to the browser (paste, undo).
+// A mouse button clicked on the field once it has focus binds that button (mouse_left...): the first click only focuses.
 // An unknown key is marked invalid, with the reason as its title, and not saved. blankOk: '' saves, Backspace clears.
 function keyField(el, save, blankOk = false, live = false) {
   const title = el.title, hint = el.placeholder;
@@ -299,8 +315,13 @@ function keyField(el, save, blankOk = false, live = false) {
   };
   const bind = v => { el.value = v; typing = false; commit(); el.select(); };   // selected: shows the next key replaces it
   el.oninput = () => { typing = true; el.classList.remove('invalid'); el.title = title; };   // also IME, dead keys, paste
-  el.onfocus = () => { typing = false; mod = null; prev = el.value; el.placeholder = 'press a key…'; el.select(); };
+  el.onfocus = () => { typing = false; mod = null; prev = el.value; el.placeholder = 'press a key or click…'; el.select(); };
   el.onmouseup = e => { if (!typing) e.preventDefault(); };   // else the focusing click unselects
+  el.onmousedown = e => {
+    if (document.activeElement !== el || typing || !MOUSE_MAP[e.button]) return;
+    e.preventDefault(); bind(MOUSE_MAP[e.button]);
+  };
+  el.oncontextmenu = e => { if (document.activeElement === el) e.preventDefault(); };   // right-click binds, no menu
   el.onblur = () => { el.placeholder = hint; mod = null; if (typing) commit(); typing = false; };   // mod: Alt+Tab's stray keyup
   el.onkeydown = e => {
     if (e.key === 'Escape') e.stopPropagation();   // binds esc or cancels: mustn't also close the panels or end the drill
@@ -354,8 +375,13 @@ function connect() {
     document.getElementById('untrusted').hidden = !(m.send_keys && m.trusted === false);   // macOS only: always true elsewhere
     const sent = m.send_keys && m.trusted !== false, held = document.getElementById('held');
     document.getElementById('camwrap').classList.toggle('sending', sent);
-    held.classList.toggle('off', !sent);   // chips the game isn't getting must not look like presses
-    held.innerHTML = (m.held || []).map(k => `<span>${k}</span>`).join('') + (!sent && m.held && m.held.length ? `<small>${m.send_keys ? 'blocked' : 'not sent'}</small>` : '');
+    // chips the game isn't getting must not look like presses: all of them with keys off, or those camera mode holds back
+    const look = m.look || {}, blocked = new Set(sent ? m.blocked || [] : []);
+    held.classList.toggle('off', !sent);
+    held.innerHTML = (m.held || []).map(k => `<span class="${blocked.has(k) ? 'held-back' : ''}">${k}</span>`).join('')
+      + (!sent && m.held && m.held.length ? `<small>${m.send_keys ? 'blocked' : 'not sent'}</small>`
+         : blocked.size ? `<small>paused: camera mode</small>` : '');
+    showLook(look);
     paused = m.paused ? (m.body ? m.missing : []) : null;   // the server debounces: a blip out of frame isn't a pause
     pauseCue(!!m.paused, !!m.send_keys);
     const ok = !m.error && m.body && !paused;
@@ -406,6 +432,46 @@ function pauseCue(p, on) {
   if (cued !== null && on && document.getElementById('sound').checked) { if (p) { beep(330, 120); beep(330, 120, 0.2); } else beep(990, 150); }
   cued = p; cuedAt = performance.now();
 }
+// camera mode: the switch and toggle picker, the badge and stick over the preview, and a beep up (on) or down (off) at
+// each toggle, for the game window. lookState is the latest broadcast, for the pose cards' tag.
+let lookWas = null, lookWant = {}, lookAt = 0, lookState = {};
+const lookPick = document.getElementById('lookToggle'), lookBtn = document.getElementById('lookButton');
+function showLook(l) {
+  lookState = l;
+  // like send keys: our own change wins over the broadcasts still in flight from before it
+  const theirs = k => !(k in lookWant) || l[k] === lookWant[k] || performance.now() - lookAt > 1000;
+  if (theirs('enabled')) { delete lookWant.enabled; document.getElementById('lookOn').checked = !!l.enabled; }
+  const toggle = l.toggle || 'clap', names = [...new Set(poses.map(p => p.name).filter(Boolean))];
+  const opts = ['clap', ...names.filter(n => n !== 'clap')];
+  if (!opts.includes(toggle)) opts.push(toggle);   // renamed or removed: shown, so it's clear why nothing toggles
+  const sig = JSON.stringify(opts);
+  if (lookPick.dataset.sig !== sig && document.activeElement !== lookPick) {
+    lookPick.dataset.sig = sig;
+    lookPick.innerHTML = opts.map(n => `<option value="${esc(n)}">${n === 'clap' ? 'clap' : esc(n) + (names.includes(n) ? '' : ' (not in poses)')}</option>`).join('');
+  }
+  if (theirs('toggle') && document.activeElement !== lookPick) { delete lookWant.toggle; lookPick.value = toggle; }
+  if (theirs('button') && document.activeElement !== lookBtn) { delete lookWant.button; lookBtn.value = l.button || 'right'; }
+  document.getElementById('lookExit').textContent = toggle === 'clap' ? 'clap' : toggle;
+  document.getElementById('look').classList.toggle('on', !!l.on);
+  if (l.on) {
+    const r = 45 / (l.reach || 0.5), [x, y] = l.stick || [0, 0], m = Math.hypot(x, y) * r, k = m > 45 ? 45 / m : 1;
+    const dot = document.getElementById('lookDot');
+    dot.setAttribute('cx', x * r * k); dot.setAttribute('cy', -y * r * k);
+    document.getElementById('lookDead').setAttribute('r', (l.deadzone || 0) * r);
+  }
+  if (lookWas !== null && !!l.on !== lookWas && document.getElementById('sound').checked) {
+    if (l.on) { beep(660, 90); beep(990, 120, 0.1); } else { beep(990, 90); beep(660, 120, 0.1); }
+  }
+  lookWas = !!l.on;
+}
+function setLook(k, v) {
+  lookWant[k] = v; lookAt = performance.now();
+  try { audio = audio || new AudioContext(); } catch {}
+  send({ type: 'config', config: { look: { [k]: v } } });
+}
+document.getElementById('lookOn').onchange = e => setLook('enabled', e.target.checked);
+lookPick.onchange = e => { setLook('toggle', e.target.value); lookPick.blur(); };
+lookBtn.onchange = e => { setLook('button', e.target.value); lookBtn.blur(); };
 function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 function pushConfig() { pending = JSON.stringify(poses); pendingAt = performance.now(); send({ type: 'config', config: { poses, send_keys: document.getElementById('send').checked } }); dirty = false; }
 function scheduleSave() { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(pushConfig, 300); scheduleClashes(); updatePresetBadges(); }
@@ -464,6 +530,7 @@ function renderPoses() {
         <input class="name" value="${esc(p.name)}" title="pose name">
         <span class="small">key</span><input class="key" value="${esc(p.key)}" title="click, then press the key: a, space, f1, left shift... To bind by name (tab, num_lock), type it, then Enter. Esc while typing cancels.">
         <span class="badge"></span>
+        <span class="badge looktag" hidden title="Picked next to camera mode: this pose turns camera mode on and off, and its key is never sent">camera toggle</span>
         <label class="toggle small"><input type="checkbox" class="en" ${p.enabled !== false ? 'checked' : ''}> enabled</label>
       </div>
       <div class="pose-tools">
@@ -557,6 +624,8 @@ function updateLive() {
     const st = state[div.dataset.i] || {};
     div.classList.toggle('active', !!st.active);
     div.classList.toggle('disabled', p.enabled === false);
+    const toggles = !!lookState.enabled && lookState.toggle === p.name, tag = div.querySelector('.looktag');
+    tag.hidden = !toggles; div.querySelector('.key').classList.toggle('struck', toggles);
     div.querySelectorAll('.cond').forEach(row => {
       const c = p.conditions[row.dataset.ci]; if (!c) return;
       row.querySelector('.live').textContent = fmtU(c.feature, live[c.feature]);

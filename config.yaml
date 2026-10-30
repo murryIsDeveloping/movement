@@ -4,6 +4,20 @@ camera:
   height: 480
 model: models/pose_landmarker_lite.task
 port: 8765
+look:
+  enabled: true
+  toggle: clap
+  button: right
+  clap: 3.0
+  clap_distance: 0.35
+  lockout: 1.0
+  center:
+  - 0.05
+  - -0.55
+  deadzone: 0.12
+  reach: 0.5
+  speed: 900.0
+  invert_y: false
 poses:
 - name: jog
   key: w

@@ -1,7 +1,7 @@
 import re
 from pathlib import Path
 
-from src.keys import KEY_NAMES, KeyState, valid_key
+from src.keys import KEY_NAMES, MOUSE_BUTTONS, KeyState, valid_key
 
 
 class FakeKB:
@@ -49,11 +49,13 @@ def test_apply_survives_a_key_the_backend_rejects(capsys):
 
 
 def test_gui_key_capture_only_produces_valid_names():
-    """The GUI's keydown → pynput map (KEY_MAP, SIDED in static/index.html) must only produce names valid_key accepts."""
+    """The GUI's keydown and click → pynput maps (KEY_MAP, SIDED, MOUSE_MAP in static/index.html) must only produce names
+    valid_key accepts."""
     html = (Path(__file__).parent.parent / "static" / "index.html").read_text(encoding="utf-8")
     block = lambda name: re.search(r"const %s = \{(.*?)\};" % name, html, re.S).group(1)
     mapped = re.findall(r":\s*'([^']*)'", block("KEY_MAP"))
     sided = [f"{b}_{s}" for b in re.findall(r":\s*'([^']*)'", block("SIDED")) for s in "lr"]
-    assert len(mapped) > 20 and len(sided) == 8
+    mouse = re.findall(r":\s*'([^']*)'", block("MOUSE_MAP"))
+    assert len(mapped) > 20 and len(sided) == 8 and sorted(mouse) == sorted(MOUSE_BUTTONS)
     fkeys = [f"f{i}" for i in range(1, 25)]   # /^F([1-9]|1\d|2[0-4])$/ lowercased
-    assert [k for k in mapped + sided + fkeys if not (valid_key(k) and k in KEY_NAMES)] == []
+    assert [k for k in mapped + sided + mouse + fkeys if not (valid_key(k) and k in KEY_NAMES)] == []

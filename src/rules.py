@@ -87,5 +87,6 @@ class RuleEngine:
         self.until.clear()
         self.since.clear()
 
-    def keys(self) -> set[str]:
-        return {self.poses[i].key for i in self.active}
+    def keys(self, skip: int | None = None) -> set[str]:
+        """skip: a pose whose key is never sent (camera mode's toggle)."""
+        return {self.poses[i].key for i in self.active if i != skip}

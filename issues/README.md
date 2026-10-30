@@ -13,6 +13,7 @@ Structural problems that slowed building coaching, knee features and holds/reps 
 | 03 | [Recordings can't replay a feature change](architecture/03-recordings-lack-landmarks.md) | small | open |
 | 04 | [Every left/right pose is written out twice](architecture/04-left-right-presets-duplicated.md) | small | done |
 | 05 | [Baseline drift is set per frame, not per second](architecture/05-baseline-rates-per-frame.md) | small | done |
+| 06 | [The per-frame logic lives inside the camera loop](architecture/06-frame-logic-in-camera-loop.md) | small | open |
 
 Suggested order: 01 and 03 first, since they make every later change checkable (the GUI logic in tests, feature changes against real sessions). 02 builds on 01's test runner. 04 and 05 are small and independent.
 
