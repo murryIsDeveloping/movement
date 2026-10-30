@@ -41,7 +41,8 @@ SKELETON = [
     (L.RIGHT_HIP, L.RIGHT_KNEE), (L.RIGHT_KNEE, L.RIGHT_ANKLE),
 ]
 
-# Joints the features read. If any is off screen or hidden, nothing fires. Ankles aren't read, so feet may be cut off.
+# Joints the features read. If any is off screen or hidden, nothing fires. Ankles are only read by knee angle, which
+# is left out while they're out (see `seen`), so feet may be cut off.
 IN_FRAME = [
     L.NOSE,
     L.LEFT_SHOULDER, L.RIGHT_SHOULDER,
@@ -53,11 +54,15 @@ IN_FRAME = [
 MIN_VISIBILITY = 0.5
 
 
+def seen(p: np.ndarray, i: int) -> bool:
+    """Joint i is in the picture and not hidden. Visibility is column 3, if present."""
+    vis = p[i, 3] if p.shape[1] > 3 else 1.0
+    return vis >= MIN_VISIBILITY and 0.0 <= p[i, 0] <= 1.0 and 0.0 <= p[i, 1] <= 1.0
+
+
 def out_of_frame(p: np.ndarray) -> list[str]:
-    """IN_FRAME joints off the edge of the picture or hidden, as names ("left knee"). Visibility is column 3, if present."""
-    vis = p[:, 3] if p.shape[1] > 3 else np.ones(len(p))
-    return [L(i).name.lower().replace("_", " ") for i in IN_FRAME
-            if vis[i] < MIN_VISIBILITY or not (0.0 <= p[i, 0] <= 1.0 and 0.0 <= p[i, 1] <= 1.0)]
+    """IN_FRAME joints off the edge of the picture or hidden, as names ("left knee")."""
+    return [L(i).name.lower().replace("_", " ") for i in IN_FRAME if not seen(p, i)]
 
 
 class FrameWatch:

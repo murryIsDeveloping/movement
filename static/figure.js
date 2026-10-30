@@ -3,12 +3,17 @@
 // Built in image coords like the camera overlay (mirrored, y down, torso = 1), so it matches the preview.
 // Static features are measured off the figure with the same formulas as src/features.py; motion and
 // baseline features (jump, jog, squat, knee lift) are set directly and shown by geometry or animation.
-const FIG_REST = { lean: 0, tilt: 0, raiseL: 12, raiseR: 12, angleL: 170, angleR: 170, kneeL: 0, kneeR: 0, drop: 0, rise: 0, cadence: 0 };
+// foot: a planted ankle's sideways offset from the hip (+ = away from the body), or how far a lifted one tucks in towards
+// the other leg (as in tree); out: a lifted knee's swing away from the body
+const FIG_REST = { lean: 0, tilt: 0, raiseL: 12, raiseR: 12, angleL: 170, angleR: 170, kneeL: 0, kneeR: 0, drop: 0, rise: 0, cadence: 0,
+                   footL: 0, footR: 0, outL: 0, outR: 0 };
 const FIG_BOUNDS = { lean: [-0.8, 0.8], tilt: [-0.5, 0.5], raiseL: [0, 180], raiseR: [0, 180], angleL: [20, 180], angleR: [20, 180],
-                     kneeL: [0, 0.7], kneeR: [0, 0.7], drop: [0, 0.7], rise: [0, 0.8], cadence: [0, 4] };
+                     kneeL: [0, 0.7], kneeR: [0, 0.7], drop: [0, 0.7], rise: [0, 0.8], cadence: [0, 4],
+                     footL: [-0.2, 0.7], footR: [-0.2, 0.7], outL: [0, 0.5], outR: [0, 0.5] };
 const FIG_DIRECT = { hip_drop: 'drop', left_knee_lift: 'kneeL', right_knee_lift: 'kneeR', hip_rise: 'rise', step_cadence: 'cadence' };
 const FIG_MARGIN = { deg: 8, torso: 0.08, 'steps/s': 0.4, 'torso/s': 0.5, 'deg/s': 50 };   // aim this far past each threshold
-const FIG_PARTS = { left_knee_lift: ['legL'], right_knee_lift: ['legR'], wrists_distance: ['armL', 'armR'], wrist_low: ['armL', 'armR'],
+const FIG_PARTS = { left_knee_lift: ['legL'], right_knee_lift: ['legR'], left_knee_angle: ['legL'], right_knee_angle: ['legR'],
+                    left_knee_out: ['legL'], right_knee_out: ['legR'], wrists_distance: ['armL', 'armR'], wrist_low: ['armL', 'armR'],
                     lean: ['torso'], head_tilt: ['head'], hip_drop: ['torso', 'legL', 'legR'], hip_rise: ['torso', 'legL', 'legR'],
                     step_cadence: ['legL', 'legR'], clap: ['armL', 'armR'] };
 const figParts = f => FIG_PARTS[f] || (f.startsWith('left_') ? ['armL'] : f.startsWith('right_') ? ['armR'] : []);
@@ -22,12 +27,20 @@ function figBody(q) {
     const el = { x: sh.x + u[0] * 0.45, y: sh.y + u[1] * 0.45 };
     const r = q['bend' + s] * sign * (180 - q['angle' + s]) * Math.PI / 180;
     const wr = { x: el.x + (u[0] * Math.cos(r) - u[1] * Math.sin(r)) * 0.4, y: el.y + (u[0] * Math.sin(r) + u[1] * Math.cos(r)) * 0.4 };
-    const hip = { x: sign * 0.15, y: hy }, lift = q['knee' + s];
+    const hip = { x: sign * 0.15, y: hy }, lift = q['knee' + s], footX = hip.x + sign * q['foot' + s];
     let knee, ankle;
-    if (lift > 0.02) { knee = { x: hip.x, y: hy + 0.5 - lift }; ankle = { x: hip.x, y: knee.y + 0.5 }; }
-    else {   // feet stay on the ground; a squat pushes the knees out
-      const half = (2 - hy) / 2, out = Math.sqrt(Math.max(0, 0.25 - half * half));
-      knee = { x: hip.x + sign * out, y: hy + half }; ankle = { x: hip.x, y: 2 };
+    if (lift > 0.02) {   // the thigh swings out as far as its length allows; the shin hangs from the knee, tucked in by foot
+      const down = 0.5 - lift, out = Math.min(q['out' + s], Math.sqrt(Math.max(0, 0.25 - down * down)));
+      knee = { x: hip.x + sign * out, y: hy + down };
+      const dx = -sign * Math.max(0, Math.min(0.5, q['foot' + s]));
+      ankle = { x: knee.x + dx, y: knee.y + Math.sqrt(0.25 - dx * dx) };
+    } else {   // foot on the ground; a squat or a wide stance bends the knee outwards to make up the length
+      const dx = footX - hip.x;
+      ankle = { x: footX, y: Math.hypot(dx, 2 - hy) > 1 ? hy + Math.sqrt(Math.max(0, 1 - dx * dx)) : 2 };   // too far: foot lifts a touch
+      const ay = ankle.y - hy, d = Math.hypot(dx, ay) || 1e-9, h = Math.sqrt(Math.max(0, 0.25 - d * d / 4));
+      let px = -ay / d, py = dx / d;   // perpendicular to hip -> ankle, turned to point away from the body
+      if (px * sign < 0) { px = -px; py = -py; }
+      knee = { x: (hip.x + footX) / 2 + px * h, y: (hy + ankle.y) / 2 + py * h };
     }
     Object.assign(P, { ['s' + s]: sh, ['e' + s]: el, ['w' + s]: wr, ['h' + s]: hip, ['k' + s]: knee, ['a' + s]: ankle });
   }
@@ -48,6 +61,8 @@ function figFeatures(q, P) {
     f[side + '_arm_angle'] = figAngle(sh, el, wr);
     f[side + '_wrist_out'] = sign * (wr.x - sh.x);
     f[side + '_wrist_up'] = sh.y - wr.y;
+    f[side + '_knee_angle'] = figAngle(P['h' + s], P['k' + s], P['a' + s]);
+    f[side + '_knee_out'] = sign * (P['k' + s].x - P['h' + s].x);
   }
   f.wrists_distance = Math.hypot(P.wL.x - P.wR.x, P.wL.y - P.wR.y);
   f.wrist_low = Math.max(P.wL.y, P.wR.y) - hipY;
@@ -112,7 +127,7 @@ function solveFigure(conds) {
 // For each conditioned feature, push the figure to its lowest then highest value that still meets every
 // condition, moving only the highlighted parts, and tween base -> low -> high -> base.
 const FIG_KEYS = { armL: ['raiseL', 'angleL'], armR: ['raiseR', 'angleR'], torso: ['lean', 'drop'], head: ['tilt'],
-                   legL: ['kneeL', 'drop'], legR: ['kneeR', 'drop'] };
+                   legL: ['kneeL', 'drop', 'footL', 'outL'], legR: ['kneeR', 'drop', 'footR', 'outR'] };
 const FIG_STILL = ['step_cadence', 'hip_rise'];   // already animated by the jog and the hop
 const FIG_TWEEN = 8, FIG_HOLD = 4, FIG_FRAME = 0.1;   // frames per move, frames paused at each end, seconds per frame
 
@@ -236,8 +251,8 @@ function rangeText(f, [lo, hi]) {
   return lo > -Infinity ? `${f} > ${lo}` : `${f} < ${hi}`;
 }
 
-// Features on the same arm move together (raise an arm and the wrist rises), so they count as one group.
-const clashGroups = f => f.includes('knee') ? [f] : f.startsWith('left_') ? ['armL'] : f.startsWith('right_') ? ['armR']
+// Features on the same arm or leg move together (raise an arm and the wrist rises), so they count as one group.
+const clashGroups = f => f.includes('knee') ? [f.startsWith('left_') ? 'legL' : 'legR'] : f.startsWith('left_') ? ['armL'] : f.startsWith('right_') ? ['armR']
   : f.startsWith('wrist') || f === 'clap' ? ['armL', 'armR'] : [f];
 const poseGroups = p => new Set(p.conditions.flatMap(c => clashGroups(c.feature)));
 

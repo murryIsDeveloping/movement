@@ -69,7 +69,7 @@ curl -L -o models/pose_landmarker_lite.task https://storage.googleapis.com/media
 
 Stand 2–3 m back, full body in frame, plain background, even light.
 
-**Paused: not fully in frame**: if any joint the poses read (nose, shoulders, elbows, wrists, hips, knees) is off the edge of the picture or hidden for half a second straight (`pause_after` in `config.yaml`), every key is released and nothing fires until you're back in full view. The banner names the joints that are out. Shorter blips, like your head leaving the top of the picture mid-jump, don't pause. Feet may be cut off. Arms raised overhead count too: if hands-up poses pause, step back. The drill's clock stops while paused.
+**Paused: not fully in frame**: if any joint the poses read (nose, shoulders, elbows, wrists, hips, knees) is off the edge of the picture or hidden for half a second straight (`pause_after` in `config.yaml`), every key is released and nothing fires until you're back in full view. The banner names the joints that are out. Shorter blips, like your head leaving the top of the picture mid-jump, don't pause. Feet may be cut off, except for poses using **knee angle** (hip-knee-ankle): it reads blank, so its condition fails, while that ankle is out of frame, and the coach says to step back. Seen from the front, knee angle and **knee out** catch a knee bending or opening out to the side (warrior, goddess, tree); a knee bending towards the camera (a squat, chair) barely shows, so those still use hip drop. Arms raised overhead count too: if hands-up poses pause, step back. The drill's clock stops while paused.
 
 ## Tests
 

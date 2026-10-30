@@ -229,3 +229,33 @@ def test_wrist_low_when_touching_ground():
     p = standing(); p[L.RIGHT_WRIST, 1] = p[L.RIGHT_ANKLE, 1]
     f = FeatureEngine().update(p, 0.0)
     assert f["wrist_low"] > 1.5
+
+
+def test_knee_angle_straight_and_bent_out():
+    f = FeatureEngine().update(standing(), 0.0)
+    assert math.isclose(f["left_knee_angle"], 180, abs_tol=1)
+    assert abs(f["left_knee_out"]) < 0.01
+    # warrior-style: right knee out to the side over a planted ankle, thigh level
+    p = standing()
+    p[L.RIGHT_KNEE, :2] = p[L.RIGHT_HIP, :2] + (0.2, 0.0)
+    p[L.RIGHT_ANKLE, :2] = p[L.RIGHT_KNEE, :2] + (0.0, 0.2)
+    f = FeatureEngine().update(p, 0.0)
+    assert math.isclose(f["right_knee_angle"], 90, abs_tol=1)
+    assert math.isclose(f["right_knee_out"], 1.0, abs_tol=0.01)   # 0.2 over a torso of 0.2
+
+
+def test_knee_out_is_away_from_body_on_both_sides():
+    p = standing()
+    p[L.LEFT_KNEE, 0] -= 0.05    # mirrored: the user's left is at small x
+    p[L.RIGHT_KNEE, 0] += 0.05
+    f = FeatureEngine().update(p, 0.0)
+    assert f["left_knee_out"] > 0.2 and f["right_knee_out"] > 0.2
+
+
+def test_knee_angle_blank_while_ankle_out_of_frame():
+    p = np.hstack([standing(), np.ones((33, 1))])   # with a visibility column
+    p[L.LEFT_ANKLE, 1] = 1.05                       # off the bottom edge
+    p[L.RIGHT_ANKLE, 3] = 0.1                       # hidden
+    f = FeatureEngine().update(p, 0.0)
+    assert "left_knee_angle" not in f and "right_knee_angle" not in f
+    assert "left_knee_out" in f

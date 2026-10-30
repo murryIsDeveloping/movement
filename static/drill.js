@@ -36,6 +36,8 @@ const COACH = {
 };
 for (const s of ['left', 'right']) Object.assign(COACH, {
   [`${s}_knee_lift`]: [`lift your ${s} knee higher`, `lower your ${s} knee`],
+  [`${s}_knee_angle`]: [`straighten your ${s} leg`, `bend your ${s} knee more`],
+  [`${s}_knee_out`]: [`open your ${s} knee out to the side`, `bring your ${s} knee in`],
   [`${s}_arm_raise`]: [`raise your ${s} arm higher`, `lower your ${s} arm`],
   [`${s}_arm_angle`]: [`straighten your ${s} arm`, `bend your ${s} elbow more`],
   [`${s}_wrist_out`]: [`reach your ${s} hand further out`, `bring your ${s} hand in`],
@@ -55,6 +57,8 @@ function coachCue(i) {
   let best = null;
   poses[i].conditions.forEach((c, ci) => {
     const x = live[c.feature];
+    // knee angle is blank while the ankle is out of frame: no fix will help until the feet are in view
+    if (!conds[ci] && x === undefined && c.feature.endsWith('_knee_angle')) best = { score: 20, cue: 'step back so your feet are in view' };
     if (conds[ci] || x === undefined || !COACH[c.feature]) return;
     const [lo, hi] = (info[c.feature] || {}).range || [0, 1];
     const score = (COACH_MOVES.test(c.feature) ? 0 : 10) + Math.abs(x - c.value) / (hi - lo);

@@ -4,7 +4,7 @@ from collections import deque
 
 import numpy as np
 
-from src.landmarks import L
+from src.landmarks import L, seen
 
 # name -> (description, unit) shown in the GUI
 FEATURES = {
@@ -12,6 +12,10 @@ FEATURES = {
     "hip_drop":         ("Hips below standing height (squat)", "torso"),
     "left_knee_lift":   ("Left knee raised from standing", "torso"),
     "right_knee_lift":  ("Right knee raised from standing", "torso"),
+    "left_knee_angle":  ("Left knee angle (hip-knee-ankle): 180 straight. A knee bending out to the side shows; towards the camera barely does. Blank while the ankle is out of frame", "deg"),
+    "right_knee_angle": ("Right knee angle (hip-knee-ankle): 180 straight. A knee bending out to the side shows; towards the camera barely does. Blank while the ankle is out of frame", "deg"),
+    "left_knee_out":    ("Left knee sideways from the hip (+ = away from body)", "torso"),
+    "right_knee_out":   ("Right knee sideways from the hip (+ = away from body)", "torso"),
     "step_cadence":     ("Alternating knee lifts per second (jog)", "steps/s"),
     "left_arm_raise":   ("Left upper arm from hanging: 0 down, 90 out, 180 up", "deg"),
     "right_arm_raise":  ("Right upper arm from hanging: 0 down, 90 out, 180 up", "deg"),
@@ -122,8 +126,12 @@ class FeatureEngine:
         f["hip_rise"] = max(0.0, min(u(stand - hy), u(max(ys) - hy)))
         f["hip_drop"] = max(0.0, u(hy - stand))
 
-        # knees
-        for side, knee, hip in (("left", L.LEFT_KNEE, L.LEFT_HIP), ("right", L.RIGHT_KNEE, L.RIGHT_HIP)):
+        # knees. Mirrored, like the arms below: "out" is -x for the left knee and +x for the right.
+        for side, knee, hip, ankle, sign in (("left", L.LEFT_KNEE, L.LEFT_HIP, L.LEFT_ANKLE, -1),
+                                             ("right", L.RIGHT_KNEE, L.RIGHT_HIP, L.RIGHT_ANKLE, 1)):
+            f[f"{side}_knee_out"] = u(sign * (xy[knee, 0] - xy[hip, 0]))
+            if seen(p, ankle):   # a guessed ankle off the bottom edge reads as a straight leg
+                f[f"{side}_knee_angle"] = _angle(xy[hip], xy[knee], xy[ankle])
             rel = float(xy[knee, 1] - xy[hip, 1])
             base = self.knee_base[knee].update(rel)
             lift = u(base - rel)
