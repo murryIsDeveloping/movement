@@ -979,65 +979,6 @@ presets:
   hold: 0.4
   delay: 0.3
 groups:
-- name: current setup
-  notes: ''
-  presets:
-  - jog
-  - jump
-  - right
-  - stride right
-  - left
-  - stride left
-  - pick up
-  - shoot
-  - hold sword
-  - right up
-  - left up
-  - squat hands up
-  - squat hands out
-  - right knee up
-  - left knee up
-  - left punch
-  - right punch
-  keys: {}
-- name: 'test: arms held'
-  notes: ''
-  presets:
-  - both arms up
-  - steeple
-  - t-pose
-  - right arm diagonal up
-  - left arm diagonal up
-  - right arm diagonal down
-  - left arm diagonal down
-  - double biceps
-  - hands on head
-  - hands on hips
-  - salute
-  - cross arms
-  - prayer hands
-  keys: {}
-- name: 'test: arm moves'
-  notes: ''
-  presets:
-  - clap
-  - right hand swipe out
-  - left hand swipe out
-  - right uppercut
-  - left uppercut
-  keys: {}
-- name: 'test: body'
-  notes: ''
-  presets:
-  - star jump
-  - right knee to left elbow
-  - left knee to right elbow
-  - side bend left
-  - side bend right
-  - head tilt left
-  - head tilt right
-  - toe touch
-  keys: {}
 - name: wow hunter
   notes: 'Movement on W/A/D/Q/E and space. Shots and pet abilities on action bar 1-8:
     put your main shot on 1 and your rotation after it.'
@@ -1114,3 +1055,44 @@ groups:
     right punch: z
     pick up: down
     right up: up
+- name: light movements
+  notes: 'Standing still, arms and head only: no jogging, jumping or squats. For a
+    gentle session, or when space is tight. Each pose presses its preset''s default
+    key.'
+  presets:
+  - right
+  - left
+  - right up
+  - left up
+  - both arms up
+  - t-pose
+  - right arm diagonal up
+  - left arm diagonal up
+  - head tilt left
+  - head tilt right
+  - hands on head
+  - hands on hips
+  keys: {}
+- name: workout
+  notes: 'Full-body moves for a sweat: jogging, jumps, squats, knee lifts, crunches,
+    punches and stretches. Star jump also fires jump, and the cross crunches can fire
+    a knee lift. Each pose presses its preset''s default key.'
+  presets:
+  - jog
+  - jump
+  - star jump
+  - squat hands up
+  - squat hands out
+  - pick up
+  - right knee up
+  - left knee up
+  - right knee to left elbow
+  - left knee to right elbow
+  - right punch
+  - left punch
+  - right uppercut
+  - left uppercut
+  - side bend left
+  - side bend right
+  - toe touch
+  keys: {}
