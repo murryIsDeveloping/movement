@@ -121,7 +121,7 @@ function fillTrace(order, peak, keepEdits) {
     tr.className = c.picked.has(f) ? 'picked' : '';
     tr.innerHTML = `<td><input type="checkbox" ${c.picked.has(f) ? 'checked' : ''}></td>
       <td title="${info[f].desc}">${f}</td><td><canvas width="160" height="28"></canvas></td>
-      <td class="n">${fmt(c.rest[f])}</td><td class="n"><b>${fmt(fr.f[f])}</b></td>
+      <td class="n">${fmtU(f, c.rest[f])}</td><td class="n"><b>${fmtU(f, fr.f[f])}</b></td>
       <td><select><option ${c.ops[f] === '>' ? 'selected' : ''}>&gt;</option><option ${c.ops[f] === '<' ? 'selected' : ''}>&lt;</option></select></td>
       <td><input class="thr" type="number" step="any" value="${c.thr[f]}"></td>`;
     tr.querySelector('input[type=checkbox]').onchange = e => { e.target.checked ? c.picked.add(f) : c.picked.delete(f); tr.className = e.target.checked ? 'picked' : ''; };

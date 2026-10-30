@@ -1,8 +1,10 @@
 import math
+import re
+from pathlib import Path
 
 import numpy as np
 
-from src.features import FEATURES, FeatureEngine
+from src.features import FEATURE_INFO, FEATURES, UNIT_RANGES, FeatureEngine
 from src.landmarks import L
 from tests.fixtures import standing
 
@@ -21,6 +23,15 @@ def still(n=30):
 def test_every_declared_feature_present():
     f = run(FeatureEngine(), still())
     assert set(f) == set(FEATURES)
+
+
+def test_every_feature_has_a_unit():
+    for k, i in FEATURE_INFO.items():
+        assert i["desc"] and i["unit"] in UNIT_RANGES and i["sym"], k
+    # the GUI's stick figure aims past thresholds by a per-unit margin
+    fig = (Path(__file__).parent.parent / "static" / "figure.js").read_text(encoding="utf-8")
+    margins = re.search(r"FIG_MARGIN = \{(.*?)\}", fig).group(1)
+    assert set(re.findall(r"'?([\w/]+)'?:", margins)) == set(UNIT_RANGES)
 
 
 def test_standing_baselines_near_zero():

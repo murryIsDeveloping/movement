@@ -36,9 +36,11 @@ FEATURES = {
 
 # unit -> (min, max, step) for the GUI's sliders, meters and stick-figure solver
 UNIT_RANGES = {"deg": (0, 180, 1), "torso": (-2, 2, 0.01), "steps/s": (0, 5, 0.1), "torso/s": (-8, 8, 0.1), "deg/s": (-1500, 1500, 10)}
+# unit -> what the GUI prints after a value: 92°, 0.31 t (t = torso lengths), 1.80/s. Short: it sits in narrow columns.
+UNIT_SYMBOLS = {"deg": "°", "torso": "t", "steps/s": "/s", "torso/s": "t/s", "deg/s": "°/s"}
 
 # what the GUI knows about each feature
-FEATURE_INFO = {k: {"desc": d, "unit": u, "range": UNIT_RANGES[u]} for k, (d, u) in FEATURES.items()}
+FEATURE_INFO = {k: {"desc": d, "unit": u, "sym": UNIT_SYMBOLS[u], "range": UNIT_RANGES[u]} for k, (d, u) in FEATURES.items()}
 
 
 MIN_STEP_GAP = 0.15   # seconds; real jogging is ~0.3s a step
