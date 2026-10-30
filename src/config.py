@@ -15,6 +15,7 @@ DEFAULT = {
     "model": "models/pose_landmarker_lite.task",
     "port": 8765,
     "look": look.DEFAULT,
+    "clashes_ok": [],   # pose-name pairs marked fine in the GUI's clash list: shown dimmed, not counted
     "poses": [
         {"name": "jog", "key": "w", "conditions": [{"feature": "step_cadence", "op": ">", "value": 1.0}]},
         {"name": "jump", "key": "space", "conditions": [{"feature": "hip_rise", "op": ">", "value": 0.15}]},

@@ -137,7 +137,7 @@ class App:
                 self.hub.publish(jpeg.tobytes(), {
                     "t": t, "features": feats, "poses": poses, "state": state, "body": p is not None, "paused": paused, "missing": missing,
                     "held": sorted(held), "blocked": sorted(held - out), "look": look, "send_keys": send, "fps": round(fps, 1), "feature_info": FEATURE_INFO, "key_names": KEY_LIST,
-                    "trusted": self.trusted,
+                    "trusted": self.trusted, "clashes_ok": self.cfg["clashes_ok"],
                 })
         except Exception:
             traceback.print_exc()
