@@ -91,16 +91,17 @@ async def config_put(request):
 
 
 async def library_get(_):
-    return web.json_response({**library.load(), "edit_builtins": DEV})
+    return web.json_response(library.load())
 
 
 async def library_put(request):
-    """The GUI edits the library locally and sends the whole thing back. Built-ins only change running from source."""
+    """The GUI edits the library locally and sends the whole thing back. Built-ins never change from the app, even
+    running from source: they're edited in presets.yaml directly. Answers with the library as saved: a tuned side of a left/right pair has changed its other side too."""
     try:
-        library.save(await request.json(), edit_builtins=DEV)
+        saved = library.save(await request.json(), edit_builtins=False)
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=400)
-    return web.json_response({"ok": True})
+    return web.json_response({"ok": True, **saved})
 
 
 async def recording_post(request):

@@ -51,7 +51,9 @@ MIN_STEP_GAP = 0.15   # seconds; real jogging is ~0.3s a step
 STILL_HIPS = 0.05     # torso; hips moving less than this over rise_window count as still
 CROUCHED = 0.25       # torso below standing height: a squat, not a posture shift
 KNEE_UP = 0.15        # torso; a knee lifted this far is up (a step, or a held lift)
-HELD_RATE = 0.0001    # per frame; a baseline's drift while the pose it measures is held: ~5 min to fade, so holds last
+DRIFT = 3.3           # seconds; a baseline's time constant: follows camera and posture shifts
+HELD_DRIFT = 330.0    # seconds; the time constant while the pose it measures is held: ~5 min to fade, so holds last
+MAX_DT = 0.5          # seconds; a stalled camera doesn't jump the baselines
 
 def _angle(a, b, c) -> float:
     """Angle at b in degrees."""
@@ -70,15 +72,15 @@ def _raise(shoulder, elbow) -> float:
 class _Baseline:
     """Tracks the resting value: snaps down to new lows, drifts up slowly."""
 
-    def __init__(self, rate=0.01):
-        self.rate = rate
+    def __init__(self):
         self.v = None
 
-    def update(self, x: float, rate: float | None = None) -> float:
+    def update(self, x: float, dt: float, tau: float = DRIFT) -> float:
+        """dt is the time since the last frame, so drift is the same speed at any frame rate."""
         if self.v is None or x > self.v:
             self.v = x
         else:
-            self.v += (x - self.v) * (self.rate if rate is None else rate)
+            self.v += (x - self.v) * (1 - math.exp(-dt / tau))
         return self.v
 
 
@@ -91,6 +93,7 @@ class FeatureEngine:
         self.knee_up = {L.LEFT_KNEE: False, L.RIGHT_KNEE: False}
         self.last_leg = None
         self.steps: deque[float] = deque(maxlen=6)
+        self.last_t = None
         self.reset_baselines()
 
     def reset_baselines(self):
@@ -108,6 +111,8 @@ class FeatureEngine:
         u = lambda v: float(v) / torso
 
         f: dict[str, float] = {}
+        frame_dt = 0.0 if self.last_t is None else min(max(t - self.last_t, 0.0), MAX_DT)
+        self.last_t = t
 
         # vertical hip motion, against standing height. Standing height only updates while the hips are still,
         # so a jump's peak doesn't become the new "standing" (which made standing after it read as a squat), and
@@ -121,7 +126,7 @@ class FeatureEngine:
         ys = [h[1] for h in self.hip_hist]
         if self.hip_base.v is None or u(max(ys) - min(ys)) < STILL_HIPS:
             crouched = self.hip_base.v is not None and u(hy + self.hip_base.v) > CROUCHED
-            self.hip_base.update(-hy, HELD_RATE if crouched else None)   # y is down: the baseline tracks the highest hips
+            self.hip_base.update(-hy, frame_dt, HELD_DRIFT if crouched else DRIFT)   # y is down: the baseline tracks the highest hips
         stand = -self.hip_base.v
         # a jump is above standing height AND a fast rise: walking back from the camera creeps above a baseline
         # that can't update while moving, but slowly
@@ -138,7 +143,7 @@ class FeatureEngine:
             # baseline drifts to follow posture shifts, but crawls while the knee is up so a held lift (tree) lasts.
             rel = u(xy[knee, 1] - xy[hip, 1])
             held = self.knee_base[knee].v is not None and self.knee_base[knee].v - rel > KNEE_UP
-            lift = self.knee_base[knee].update(rel, HELD_RATE if held else None) - rel
+            lift = self.knee_base[knee].update(rel, frame_dt, HELD_DRIFT if held else DRIFT) - rel
             f[f"{side}_knee_lift"] = lift
             up = lift > KNEE_UP
             # a squat lifts both knees a few hundredths of a second apart: too quick to be a step

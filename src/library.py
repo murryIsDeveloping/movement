@@ -7,7 +7,11 @@ Built-in presets and groups ship with the app in presets.yaml and are read-only,
 build on them with their own presets (often clones of built-ins) and groups in my_presets.yaml, next to config.yaml.
 Running from source, built-ins are editable too: that is how they get tuned before shipping. Built-in presets are
 never deleted or renamed though, only tuned or cloned.
+
+A left/right pair is stored once: the preset written out carries `mirror: {name, key}`, and loading generates the
+other side (flagged mirror_of) with left and right swapped and sideways signs flipped. Tuning either side tunes both.
 """
+import re
 from pathlib import Path
 
 import yaml
@@ -19,6 +23,60 @@ from src.rules import Pose
 BUILTIN = paths.resource_root() / "presets.yaml"
 USER = paths.config_path().parent / "my_presets.yaml"
 STATUSES = ("tested", "untested")
+MIRRORED = ("status", "notes", "conditions", "margin", "enabled", "hold", "delay")   # shared by both sides of a pair
+SIDEWAYS = re.compile(r"^(lean|head_tilt|(left|right)_wrist_vx)$")   # + is image right, so mirroring flips the sign
+_SIDE = re.compile(r"(?<![A-Za-z])(left|right|Left|Right)(?![A-Za-z])")
+
+
+def _swap(s: str) -> str:
+    """left <-> right, in names, notes and feature names."""
+    return _SIDE.sub(lambda m: {"left": "right", "right": "left", "Left": "Right", "Right": "Left"}[m.group(1)], s)
+
+
+def _mirror_condition(c: dict) -> dict:
+    f = _swap(c["feature"])
+    if SIDEWAYS.match(f):   # lean > 0.25 becomes lean < -0.25
+        return {"feature": f, "op": {">": "<", "<": ">"}[c["op"]], "value": -float(c["value"]) + 0.0}
+    return {**c, "feature": f}
+
+
+def _mirror(p: dict) -> dict:
+    """The other side of a preset: the fields both share, mirrored."""
+    return {"notes": _swap(str(p.get("notes", ""))), "conditions": [_mirror_condition(c) for c in p.get("conditions") or []],
+            **{k: p[k] for k in MIRRORED if k in p and k not in ("notes", "conditions")}}
+
+
+def _expand(half: dict) -> dict:
+    """Disk form to library form: each mirror: {name, key} becomes its own preset, right after the original."""
+    presets = []
+    for p in half.get("presets") or []:
+        p = dict(p)
+        m = p.pop("mirror", None)
+        presets.append(p)
+        if m:
+            presets.append({"name": m["name"], "key": m.get("key", p.get("key")), **_mirror(p), "mirror_of": p["name"]})
+    return {**half, "presets": presets}
+
+
+def _collapse(half: dict, path: Path) -> dict:
+    """Library form back to disk form: each generated side folds into its original as mirror: {name, key}. If the
+    generated side was tuned since path was saved, its tuning goes into the original; if its original is gone, it
+    stands alone."""
+    try:
+        old = {p["name"]: p for p in validate(_expand(_read(path)))["presets"]}
+    except (ValueError, KeyError):
+        old = {}
+    shared = lambda p: {k: p.get(k) for k in MIRRORED}
+    names = {p["name"] for p in half["presets"] if not p.get("mirror_of")}
+    out = {p["name"]: {k: v for k, v in p.items() if k != "mirror_of"} for p in half["presets"]
+           if p.get("mirror_of") not in names}
+    for g in half["presets"]:
+        if g.get("mirror_of") in names:
+            o = out[g["mirror_of"]]
+            if g["name"] in old and shared(g) != shared(old[g["name"]]):
+                o.update(_mirror(g))
+            o["mirror"] = {"name": g["name"], "key": g["key"]}
+    return {**half, "presets": list(out.values())}
 
 
 def _read(path: Path) -> dict:
@@ -50,7 +108,7 @@ def load(builtin: Path | None = None, user: Path | None = None) -> dict:
     A new build's built-ins can disagree with the user's file: a user preset or group sharing a new built-in's name
     is renamed "<name> (mine)", and group members naming a preset that no longer exists are dropped.
     Keys pynput can't press (older builds saved any text) are repaired: a preset's resets to "1", a group's is dropped."""
-    b, u = _read(builtin or BUILTIN), _read(user or USER)
+    b, u = _expand(_read(builtin or BUILTIN)), _expand(_read(user or USER))
     for p in (b.get("presets") or []) + (u.get("presets") or []):
         if not valid_key(str(p.get("key", ""))):
             print(f"library: preset {p['name']!r}: unknown key {p.get('key')!r}, reset to '1'")
@@ -66,6 +124,9 @@ def load(builtin: Path | None = None, user: Path | None = None) -> dict:
             if x["name"] in taken:
                 old, x["name"] = x["name"], f"{x['name']} (mine)"
                 if key == "presets":
+                    for p in u.get("presets") or []:
+                        if p.get("mirror_of") == old:
+                            p["mirror_of"] = x["name"]
                     for g in u.get("groups") or []:
                         g["presets"] = [x["name"] if m == old else m for m in g.get("presets") or []]
                         g["keys"] = {x["name"] if m == old else m: k for m, k in (g.get("keys") or {}).items()}
@@ -83,21 +144,23 @@ def save(lib: dict, edit_builtins: bool, builtin: Path | None = None, user: Path
     builtin, user = builtin or BUILTIN, user or USER
     if edit_builtins:   # before validate, which would only complain about a group naming the missing preset
         kept = {p["name"] for p in lib.get("presets") or [] if p.get("builtin")}
-        missing = [p["name"] for p in _read(builtin).get("presets") or [] if p["name"] not in kept]
+        missing = [p["name"] for p in _expand(_read(builtin))["presets"] if p["name"] not in kept]
         if missing:
             raise ValueError(f"built-in presets can't be deleted or renamed: {', '.join(missing)}")
     lib = validate(lib)
-    lib = _merge(_part(lib, True) if edit_builtins else _read(builtin), _part(lib, False))
+    b = _collapse(_part(lib, True), builtin) if edit_builtins else _read(builtin)
+    u = _collapse(_part(lib, False), user)
+    lib = _merge(_expand(b), _expand(u))
     if edit_builtins:
-        _write(_part(lib, True), builtin)
-    _write(_part(lib, False), user)
+        _write(b, builtin)
+    _write(u, user)
     return lib
 
 
 def group_poses(group: str, builtin: Path | None = None) -> list[dict]:
     """A built-in group as active poses, linked to their presets: the same mapping as poseFromPreset in library.js.
     KeyError if there's no such group, ValueError like validate."""
-    lib = validate(_read(builtin or BUILTIN))
+    lib = validate(_expand(_read(builtin or BUILTIN)))
     g = next((g for g in lib["groups"] if g["name"] == group), None)
     if g is None:
         raise KeyError(f"no built-in group named {group!r}")
@@ -121,7 +184,8 @@ def validate(lib: dict) -> dict:
         if status not in STATUSES:
             raise ValueError(f"preset {name!r}: status must be one of {STATUSES}, got {status!r}")
         builtins[name] = bool(d.get("builtin", False))
-        presets.append({"name": name, "status": status, "notes": str(d.get("notes", "")), **pose, "builtin": builtins[name]})
+        mirror = {"mirror_of": str(d["mirror_of"])} if d.get("mirror_of") else {}
+        presets.append({"name": name, "status": status, "notes": str(d.get("notes", "")), **pose, **mirror, "builtin": builtins[name]})
     groups, gnames = [], set()
     for g in lib.get("groups") or []:
         if g["name"] in gnames:

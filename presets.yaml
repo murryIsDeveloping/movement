@@ -63,6 +63,9 @@ presets:
   enabled: true
   hold: 0.25
   delay: 0.35
+  mirror:
+    name: left
+    key: a
 - name: stride right
   status: tested
   notes: Jog on the spot leaning to your right.
@@ -78,55 +81,9 @@ presets:
   enabled: true
   hold: 0.25
   delay: 0.0
-- name: left
-  status: tested
-  notes: Left arm straight out to the side at shoulder height, right arm down, body
-    upright. Hold still.
-  key: a
-  conditions:
-  - feature: left_arm_raise
-    op: '>'
-    value: 76.0
-  - feature: left_arm_raise
-    op: <
-    value: 100.0
-  - feature: right_arm_raise
-    op: <
-    value: 35.0
-  - feature: lean
-    op: <
-    value: 0.1
-  - feature: lean
-    op: '>'
-    value: -0.1
-  - feature: left_wrist_up
-    op: <
-    value: 0.4
-  - feature: left_wrist_vy
-    op: <
-    value: 1.5
-  - feature: left_wrist_vy
-    op: '>'
-    value: -1.5
-  margin: 0.1
-  enabled: true
-  hold: 0.25
-  delay: 0.35
-- name: stride left
-  status: tested
-  notes: Jog on the spot leaning to your left.
-  key: q
-  conditions:
-  - feature: step_cadence
-    op: '>'
-    value: 0.4
-  - feature: lean
-    op: <
-    value: -0.25
-  margin: 0.1
-  enabled: true
-  hold: 0.25
-  delay: 0.0
+  mirror:
+    name: stride left
+    key: q
 - name: pick up
   status: tested
   notes: Squat with both arms hanging straight down.
@@ -216,24 +173,9 @@ presets:
   enabled: true
   hold: 0.4
   delay: 0.0
-- name: left up
-  status: tested
-  notes: Left arm straight up overhead, right arm down.
-  key: '3'
-  conditions:
-  - feature: left_wrist_up
-    op: '>'
-    value: 0.75
-  - feature: left_arm_raise
-    op: '>'
-    value: 130.0
-  - feature: right_wrist_up
-    op: <
-    value: -0.2
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0.0
+  mirror:
+    name: left up
+    key: '3'
 - name: squat hands up
   status: tested
   notes: Squat with both hands overhead.
@@ -297,21 +239,9 @@ presets:
   enabled: true
   hold: 0.4
   delay: 0.0
-- name: left knee up
-  status: tested
-  notes: Lift the left knee high, right foot planted.
-  key: '5'
-  conditions:
-  - feature: left_knee_lift
-    op: '>'
-    value: 0.6
-  - feature: right_knee_lift
-    op: <
-    value: 0.1
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0.0
+  mirror:
+    name: left knee up
+    key: '5'
 - name: left punch
   status: tested
   notes: Fast left punch across or to the side (straight at the camera barely registers).
@@ -336,30 +266,9 @@ presets:
   enabled: true
   hold: 0.4
   delay: 0.0
-- name: right punch
-  status: tested
-  notes: Fast right punch across or to the side (straight at the camera barely registers).
-  key: n
-  conditions:
-  - feature: right_punch
-    op: '>'
-    value: 500.0
-  - feature: hip_drop
-    op: <
-    value: 0.4
-  - feature: right_arm_raise
-    op: <
-    value: 75.0
-  - feature: left_arm_raise
-    op: <
-    value: 75.0
-  - feature: right_arm_raise
-    op: '>'
-    value: 28.0
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0.0
+  mirror:
+    name: right punch
+    key: n
 - name: both arms up
   status: untested
   notes: Both arms straight up overhead, hands apart (a Y or touchdown). Standing.
@@ -462,30 +371,9 @@ presets:
   enabled: true
   hold: 0.4
   delay: 0.35
-- name: left arm diagonal up
-  status: untested
-  notes: Left arm straight, pointing up and out at 45 degrees. Right arm down.
-  key: g
-  conditions:
-  - feature: left_arm_raise
-    op: '>'
-    value: 115.0
-  - feature: left_arm_raise
-    op: <
-    value: 145.0
-  - feature: right_arm_raise
-    op: <
-    value: 35.0
-  - feature: left_arm_angle
-    op: '>'
-    value: 145.0
-  - feature: left_wrist_up
-    op: <
-    value: 0.7
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0.35
+  mirror:
+    name: left arm diagonal up
+    key: g
 - name: right arm diagonal down
   status: untested
   notes: Right arm straight, pointing down and out at 45 degrees. Left arm down. Hold
@@ -511,31 +399,9 @@ presets:
   enabled: true
   hold: 0.4
   delay: 0.35
-- name: left arm diagonal down
-  status: untested
-  notes: Left arm straight, pointing down and out at 45 degrees. Right arm down. Hold
-    still.
-  key: j
-  conditions:
-  - feature: left_arm_raise
-    op: '>'
-    value: 35.0
-  - feature: left_arm_raise
-    op: <
-    value: 65.0
-  - feature: right_arm_raise
-    op: <
-    value: 25.0
-  - feature: left_arm_angle
-    op: '>'
-    value: 150.0
-  - feature: left_punch
-    op: <
-    value: 300.0
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0.35
+  mirror:
+    name: left arm diagonal down
+    key: j
 - name: double biceps
   status: untested
   notes: 'Flex both arms: upper arms out at shoulder height, forearms up, fists well
@@ -616,31 +482,37 @@ presets:
   hold: 0.4
   delay: 0.3
 - name: hands on hips
-  status: untested
+  status: tested
   notes: Both hands on your hips, elbows out.
   key: f9
   conditions:
   - feature: left_arm_angle
     op: <
-    value: 120.0
+    value: 140.0
   - feature: right_arm_angle
     op: <
-    value: 120.0
+    value: 140.0
   - feature: left_wrist_out
     op: '>'
-    value: 0.15
+    value: -0.1
   - feature: right_wrist_out
     op: '>'
-    value: 0.15
+    value: -0.1
   - feature: wrist_low
     op: '>'
-    value: -0.35
+    value: -0.5
   - feature: wrist_low
     op: <
     value: 0.15
   - feature: left_arm_raise
+    op: '>'
+    value: 20.0
+  - feature: left_arm_raise
     op: <
     value: 60.0
+  - feature: right_arm_raise
+    op: '>'
+    value: 20.0
   - feature: right_arm_raise
     op: <
     value: 60.0
@@ -649,7 +521,7 @@ presets:
   hold: 0.4
   delay: 0.3
 - name: salute
-  status: untested
+  status: tested
   notes: Right hand flat at your brow, elbow out. Left arm down.
   key: x
   conditions:
@@ -664,28 +536,28 @@ presets:
     value: 30.0
   - feature: right_wrist_up
     op: '>'
-    value: 0.4
+    value: 0.3
   - feature: right_wrist_up
     op: <
     value: 0.75
   - feature: right_arm_angle
     op: <
-    value: 50.0
+    value: 80.0
   margin: 0.1
   enabled: true
   hold: 0.4
   delay: 0.3
 - name: cross arms
-  status: untested
-  notes: Forearms crossed in an X in front of your chest.
+  status: tested
+  notes: Forearms crossed in an X in front of your chest, each hand reaching past the other shoulder.
   key: z
   conditions:
   - feature: left_wrist_out
     op: <
-    value: -0.05
+    value: -0.18
   - feature: right_wrist_out
     op: <
-    value: -0.05
+    value: -0.18
   - feature: left_wrist_up
     op: '>'
     value: -0.9
@@ -700,7 +572,7 @@ presets:
     value: 0.0
   - feature: wrists_distance
     op: '>'
-    value: 0.3
+    value: 0.1
   margin: 0.1
   enabled: true
   hold: 0.4
@@ -712,7 +584,7 @@ presets:
   conditions:
   - feature: wrists_distance
     op: <
-    value: 0.2
+    value: 0.3
   - feature: left_wrist_up
     op: '>'
     value: -0.7
@@ -757,7 +629,7 @@ presets:
   conditions:
   - feature: right_wrist_vx
     op: '>'
-    value: 4.0
+    value: 3.5
   - feature: right_wrist_up
     op: '>'
     value: -0.6
@@ -768,24 +640,9 @@ presets:
   enabled: true
   hold: 0.3
   delay: 0.0
-- name: left hand swipe out
-  status: untested
-  notes: Sweep the left hand fast out to your left at chest height.
-  key: f7
-  conditions:
-  - feature: left_wrist_vx
-    op: <
-    value: -4.0
-  - feature: left_wrist_up
-    op: '>'
-    value: -0.6
-  - feature: left_arm_raise
-    op: '>'
-    value: 30.0
-  margin: 0.1
-  enabled: true
-  hold: 0.3
-  delay: 0.0
+  mirror:
+    name: left hand swipe out
+    key: f7
 - name: right uppercut
   status: untested
   notes: 'Fast right uppercut: fist drives upward, elbow bent.'
@@ -807,27 +664,9 @@ presets:
   enabled: true
   hold: 0.3
   delay: 0.0
-- name: left uppercut
-  status: untested
-  notes: 'Fast left uppercut: fist drives upward, elbow bent.'
-  key: u
-  conditions:
-  - feature: left_wrist_vy
-    op: '>'
-    value: 4.0
-  - feature: left_arm_angle
-    op: <
-    value: 110.0
-  - feature: left_wrist_up
-    op: '>'
-    value: -0.5
-  - feature: hip_drop
-    op: <
-    value: 0.4
-  margin: 0.1
-  enabled: true
-  hold: 0.3
-  delay: 0.0
+  mirror:
+    name: left uppercut
+    key: u
 - name: star jump
   status: untested
   notes: Jump with both hands going overhead (jumping jack). Also fires jump.
@@ -868,28 +707,9 @@ presets:
   enabled: true
   hold: 0.4
   delay: 0.0
-- name: left knee to right elbow
-  status: untested
-  notes: 'Cross crunch: lift the left knee and bring the right elbow down across to
-    it. Clashes with left knee up.'
-  key: o
-  conditions:
-  - feature: left_knee_lift
-    op: '>'
-    value: 0.5
-  - feature: right_arm_angle
-    op: <
-    value: 70.0
-  - feature: right_wrist_out
-    op: <
-    value: 0.1
-  - feature: right_wrist_up
-    op: <
-    value: 0.0
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0.0
+  mirror:
+    name: left knee to right elbow
+    key: o
 - name: side bend left
   status: untested
   notes: Feet still, bend sideways at the waist to your left.
@@ -908,24 +728,9 @@ presets:
   enabled: true
   hold: 0.4
   delay: 0.3
-- name: side bend right
-  status: untested
-  notes: Feet still, bend sideways at the waist to your right.
-  key: f12
-  conditions:
-  - feature: lean
-    op: '>'
-    value: 0.35
-  - feature: step_cadence
-    op: <
-    value: 0.2
-  - feature: hip_drop
-    op: <
-    value: 0.3
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0.3
+  mirror:
+    name: side bend right
+    key: f12
 - name: head tilt left
   status: untested
   notes: Body upright, tilt your head toward your left shoulder.
@@ -944,36 +749,28 @@ presets:
   enabled: true
   hold: 0.4
   delay: 0.3
-- name: head tilt right
-  status: untested
-  notes: Body upright, tilt your head toward your right shoulder.
-  key: t
-  conditions:
-  - feature: head_tilt
-    op: '>'
-    value: 0.15
-  - feature: lean
-    op: '>'
-    value: -0.1
-  - feature: lean
-    op: <
-    value: 0.1
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0.3
+  mirror:
+    name: head tilt right
+    key: t
 - name: toe touch
-  status: untested
-  notes: Legs straight, bend forward and reach for your toes. Bending shortens the
-    torso on camera, so expect tuning.
+  status: tested
+  notes: 'Legs straight, bend forward and slide your hands down to your knees or shins.
+    Don''t fold all the way: your hands then hide your knees from the camera and tracking
+    pauses.'
   key: f10
   conditions:
   - feature: wrist_low
     op: '>'
-    value: 0.9
+    value: 0.5
   - feature: hip_drop
     op: <
     value: 0.3
+  - feature: lean
+    op: '>'
+    value: -0.25
+  - feature: lean
+    op: <
+    value: 0.25
   margin: 0.1
   enabled: true
   hold: 0.4
@@ -981,8 +778,8 @@ presets:
 - name: chair
   status: untested
   notes: 'Yoga chair (utkatasana): feet together, sit back as if into a chair, both
-    arms reaching up overhead, chest lifted. Clashes with squat hands up when you sit
-    deep.'
+    arms reaching up overhead, chest lifted. Clashes with squat hands up when you
+    sit deep.'
   key: b
   conditions:
   - feature: hip_drop
@@ -1012,8 +809,8 @@ presets:
   delay: 0.5
 - name: tree right
   status: untested
-  notes: 'Yoga tree (vrksasana): stand on your left leg, right foot on the inside of
-    your left calf or thigh (not the knee), right knee out to the side, palms together
+  notes: 'Yoga tree (vrksasana): stand on your left leg, right foot on the inside
+    of your left calf or thigh (not the knee), right knee out to the side, palms together
     at your chest. Keep your feet in view: the knees are read down to the ankle.'
   key: m
   conditions:
@@ -1031,79 +828,38 @@ presets:
     value: 0.1
   - feature: wrists_distance
     op: <
+    value: 0.3
+  - feature: left_wrist_up
+    op: '>'
+    value: -0.8
+  - feature: left_wrist_up
+    op: <
+    value: 0.1
+  - feature: right_wrist_up
+    op: '>'
+    value: -0.8
+  - feature: right_wrist_up
+    op: <
+    value: 0.1
+  - feature: lean
+    op: '>'
+    value: -0.25
+  - feature: lean
+    op: <
     value: 0.25
-  - feature: left_wrist_up
-    op: '>'
-    value: -0.8
-  - feature: left_wrist_up
-    op: <
-    value: 0.1
-  - feature: right_wrist_up
-    op: '>'
-    value: -0.8
-  - feature: right_wrist_up
-    op: <
-    value: 0.1
-  - feature: lean
-    op: '>'
-    value: -0.15
-  - feature: lean
-    op: <
-    value: 0.15
   margin: 0.1
   enabled: true
   hold: 0.4
   delay: 0.5
-- name: tree left
-  status: untested
-  notes: 'Yoga tree (vrksasana): stand on your right leg, left foot on the inside of
-    your right calf or thigh (not the knee), left knee out to the side, palms together
-    at your chest. Keep your feet in view: the knees are read down to the ankle.'
-  key: v
-  conditions:
-  - feature: left_knee_out
-    op: '>'
-    value: 0.25
-  - feature: left_knee_angle
-    op: <
-    value: 140.0
-  - feature: right_knee_angle
-    op: '>'
-    value: 160.0
-  - feature: left_knee_lift
-    op: '>'
-    value: 0.1
-  - feature: wrists_distance
-    op: <
-    value: 0.25
-  - feature: left_wrist_up
-    op: '>'
-    value: -0.8
-  - feature: left_wrist_up
-    op: <
-    value: 0.1
-  - feature: right_wrist_up
-    op: '>'
-    value: -0.8
-  - feature: right_wrist_up
-    op: <
-    value: 0.1
-  - feature: lean
-    op: '>'
-    value: -0.15
-  - feature: lean
-    op: <
-    value: 0.15
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0.5
+  mirror:
+    name: tree left
+    key: v
 - name: warrior 2 right
   status: untested
-  notes: 'Yoga warrior II (virabhadrasana II), chest facing the camera: feet wide, right
-    foot turned out to your right, bend the right knee over the ankle, left leg straight,
-    arms straight out at shoulder height, torso upright over the hips. Keep your feet
-    in view.'
+  notes: 'Yoga warrior II (virabhadrasana II), chest facing the camera: feet wide,
+    right foot turned out to your right, bend the right knee over the ankle, left
+    leg straight, arms straight out at shoulder height, torso upright over the hips.
+    Keep your feet in view.'
   key: f1
   conditions:
   - feature: right_knee_angle
@@ -1115,60 +871,18 @@ presets:
   - feature: left_knee_angle
     op: '>'
     value: 160.0
-  - feature: left_arm_raise
-    op: '>'
-    value: 75.0
-  - feature: left_arm_raise
-    op: <
-    value: 105.0
-  - feature: right_arm_raise
-    op: '>'
-    value: 75.0
-  - feature: right_arm_raise
-    op: <
-    value: 105.0
-  - feature: left_arm_angle
-    op: '>'
-    value: 150.0
-  - feature: right_arm_angle
-    op: '>'
-    value: 150.0
-  - feature: lean
-    op: '>'
-    value: -0.15
-  - feature: lean
-    op: <
-    value: 0.15
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0.5
-- name: warrior 2 left
-  status: untested
-  notes: 'Yoga warrior II (virabhadrasana II), chest facing the camera: feet wide, left
-    foot turned out to your left, bend the left knee over the ankle, right leg straight,
-    arms straight out at shoulder height, torso upright over the hips. Keep your feet
-    in view.'
-  key: f5
-  conditions:
-  - feature: left_knee_angle
-    op: <
-    value: 140.0
   - feature: left_knee_out
     op: '>'
-    value: 0.25
-  - feature: right_knee_angle
-    op: '>'
-    value: 160.0
+    value: 0.15
   - feature: left_arm_raise
     op: '>'
-    value: 75.0
+    value: 65.0
   - feature: left_arm_raise
     op: <
     value: 105.0
   - feature: right_arm_raise
     op: '>'
-    value: 75.0
+    value: 65.0
   - feature: right_arm_raise
     op: <
     value: 105.0
@@ -1180,14 +894,17 @@ presets:
     value: 150.0
   - feature: lean
     op: '>'
-    value: -0.15
+    value: -0.25
   - feature: lean
     op: <
-    value: 0.15
+    value: 0.25
   margin: 0.1
   enabled: true
   hold: 0.4
   delay: 0.5
+  mirror:
+    name: warrior 2 left
+    key: f5
 - name: goddess
   status: untested
   notes: 'Yoga goddess (utkata konasana): feet wide and turned out, bend both knees
@@ -1275,31 +992,9 @@ presets:
   enabled: true
   hold: 0.4
   delay: 0.5
-- name: crescent right
-  status: untested
-  notes: 'Yoga standing crescent: feet together, arms overhead with palms together,
-    bend sideways at the waist to your right. Both hips stay level.'
-  key: f4
-  conditions:
-  - feature: lean
-    op: '>'
-    value: 0.3
-  - feature: left_wrist_up
-    op: '>'
-    value: 0.5
-  - feature: right_wrist_up
-    op: '>'
-    value: 0.5
-  - feature: wrists_distance
-    op: <
-    value: 0.35
-  - feature: hip_drop
-    op: <
-    value: 0.3
-  margin: 0.1
-  enabled: true
-  hold: 0.4
-  delay: 0.5
+  mirror:
+    name: crescent right
+    key: f4
 groups:
 - name: wow hunter
   notes: 'Movement on W/A/D/Q/E and space. Shots and pet abilities on action bar 1-8:
@@ -1421,8 +1116,8 @@ groups:
 - name: yoga
   notes: 'Easy standing yoga, chest facing the camera, in a flowing order: upward
     salute, forward fold, chair, prayer, tree each side, crescent each side, warrior
-    II, goddess. Use learn to go through it with coaching. Each pose presses its
-    preset''s default key.'
+    II, goddess. Use learn to go through it with coaching. Each pose presses its preset''s
+    default key.'
   presets:
   - both arms up
   - toe touch

@@ -125,18 +125,20 @@ def test_routes_save_user_half_only(files, monkeypatch):
     b, u = files
     monkeypatch.setattr(library, "BUILTIN", b)
     monkeypatch.setattr(library, "USER", u)
-    monkeypatch.setattr(server, "DEV", False)
+    monkeypatch.setattr(server, "DEV", True)   # built-ins are locked even running from source
 
     async def go():
         async with TestClient(TestServer(make_app(Hub()))) as client:
             lib = await (await client.get("/library")).json()
+            lib["presets"][0]["notes"] = "changed from the app"
             lib["presets"].append({**preset("mine"), "builtin": False})
             good = await client.put("/library", json=lib)
             bad = await client.put("/library", json={**lib, "presets": lib["presets"] + [preset("mine")]})
-            return lib["edit_builtins"], good.status, bad.status, await (await client.get("/library")).json()
-    edit, good, bad, got = asyncio.run(go())
-    assert edit is False and good == 200 and bad == 400
+            return good.status, bad.status, await (await client.get("/library")).json()
+    good, bad, got = asyncio.run(go())
+    assert good == 200 and bad == 400
     assert [p["name"] for p in got["presets"]] == ["arm", "mine"]
+    assert got["presets"][0]["notes"] != "changed from the app"
 
 
 def test_group_keys_override_per_member():
@@ -180,3 +182,66 @@ def test_load_repairs_bad_keys(files, capsys):
 def test_validate_rejects_bad_group_key():
     with pytest.raises(ValueError, match="group 'g': unknown key 'spac' for 'arm'"):
         library.validate({"presets": [preset("arm")], "groups": [{"name": "g", "presets": ["arm"], "keys": {"arm": "spac"}}]})
+
+
+STRIDE = {"name": "stride right", "key": "e", "notes": "Jog leaning to your right.", "status": "tested",
+          "conditions": [{"feature": "step_cadence", "op": ">", "value": 0.4}, {"feature": "lean", "op": ">", "value": 0.25},
+                         {"feature": "right_wrist_vx", "op": "<", "value": -1.0}],
+          "mirror": {"name": "stride left", "key": "q"}}
+
+
+@pytest.fixture
+def mirrored(tmp_path):
+    b, u = tmp_path / "presets.yaml", tmp_path / "my_presets.yaml"
+    b.write_text(yaml.safe_dump({"presets": [STRIDE], "groups": [{"name": "g", "presets": ["stride left"]}]}))
+    return b, u
+
+
+def test_mirror_generates_the_other_side(mirrored):
+    lib = library.load(*mirrored)
+    right, left = lib["presets"]
+    assert "mirror" not in right and left["mirror_of"] == "stride right"
+    assert (left["name"], left["key"], left["notes"], left["status"]) == ("stride left", "q", "Jog leaning to your left.", "tested")
+    assert left["conditions"] == [{"feature": "step_cadence", "op": ">", "value": 0.4}, {"feature": "lean", "op": "<", "value": -0.25},
+                                  {"feature": "left_wrist_vx", "op": ">", "value": 1.0}]
+
+
+def test_saving_an_untouched_mirror_keeps_the_file(mirrored):
+    b, u = mirrored
+    library.save(library.load(b, u), edit_builtins=True, builtin=b, user=u)
+    [stored] = yaml.safe_load(b.read_text())["presets"]
+    assert stored["mirror"] == STRIDE["mirror"] and stored["conditions"] == STRIDE["conditions"]
+
+
+def test_tuning_either_side_tunes_both(mirrored):
+    b, u = mirrored
+    for side, lean, other in ((0, 0.3, -0.3), (1, -0.2, 0.2)):   # tune the original, then the generated side
+        lib = library.load(b, u)
+        lib["presets"][side]["conditions"][1]["value"] = lean
+        lib["presets"][1]["key"] = "z"
+        saved = library.save(lib, edit_builtins=True, builtin=b, user=u)
+        assert saved["presets"][1 - side]["conditions"][1]["value"] == other
+        stored = yaml.safe_load(b.read_text())["presets"]
+        assert len(stored) == 1 and stored[0]["mirror"] == {"name": "stride left", "key": "z"}
+
+
+def test_deleting_one_side_of_a_user_pair(mirrored):
+    b, u = mirrored
+    u.write_text(yaml.safe_dump({"presets": [{**STRIDE, "name": "mine right", "mirror": {"name": "mine left", "key": "q"}}]}))
+    lib = library.load(b, u)
+    library.save({**lib, "presets": [p for p in lib["presets"] if p["name"] != "mine right"]}, edit_builtins=False, builtin=b, user=u)
+    left = yaml.safe_load(u.read_text())["presets"][0]
+    assert left["name"] == "mine left" and "mirror" not in left and "mirror_of" not in left
+    lib = library.load(b, u)
+    assert lib["presets"][-1]["name"] == "mine left" and "mirror_of" not in lib["presets"][-1]
+
+
+def test_shipped_pairs_are_stored_once():
+    stored = yaml.safe_load(library.BUILTIN.read_text(encoding="utf-8"))["presets"]
+    names = {p["name"] for p in stored}
+    assert sum("mirror" in p for p in stored) >= 15
+    assert not [p["name"] for p in stored if library._swap(p["name"]) in names and p["name"] != library._swap(p["name"])]
+    for p in library.load(library.BUILTIN, library.BUILTIN.parent / "no-such-file.yaml")["presets"]:
+        if p.get("mirror_of"):   # mirroring back gives the original
+            original = next(o for o in stored if o["name"] == p["mirror_of"])
+            assert library._mirror(p)["conditions"] == [{**c, "value": float(c["value"])} for c in original["conditions"]]

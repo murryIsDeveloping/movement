@@ -5,22 +5,23 @@
 // baseline features (jump, jog, squat, knee lift) are set directly and shown by geometry or animation.
 // foot: a planted ankle's sideways offset from the hip (+ = away from the body), or how far a lifted one tucks in towards
 // the other leg (as in tree); out: a lifted knee's swing away from the body
+// fold: bending forward towards the camera, which shortens the torso on screen by that fraction
 const FIG_REST = { lean: 0, tilt: 0, raiseL: 12, raiseR: 12, angleL: 170, angleR: 170, kneeL: 0, kneeR: 0, drop: 0, rise: 0, cadence: 0,
-                   footL: 0, footR: 0, outL: 0, outR: 0 };
+                   footL: 0, footR: 0, outL: 0, outR: 0, fold: 0 };
 const FIG_BOUNDS = { lean: [-0.8, 0.8], tilt: [-0.5, 0.5], raiseL: [0, 180], raiseR: [0, 180], angleL: [20, 180], angleR: [20, 180],
                      kneeL: [0, 0.7], kneeR: [0, 0.7], drop: [0, 0.7], rise: [0, 0.8], cadence: [0, 4],
-                     footL: [-0.2, 0.7], footR: [-0.2, 0.7], outL: [0, 0.5], outR: [0, 0.5] };
+                     footL: [-0.2, 0.7], footR: [-0.2, 0.7], outL: [0, 0.5], outR: [0, 0.5], fold: [0, 0.7] };
 const FIG_DIRECT = { hip_drop: 'drop', left_knee_lift: 'kneeL', right_knee_lift: 'kneeR', hip_rise: 'rise', step_cadence: 'cadence' };
 const FIG_MARGIN = { deg: 8, torso: 0.08, 'steps/s': 0.4, 'torso/s': 0.5, 'deg/s': 50 };   // aim this far past each threshold
 const FIG_PARTS = { left_knee_lift: ['legL'], right_knee_lift: ['legR'], left_knee_angle: ['legL'], right_knee_angle: ['legR'],
-                    left_knee_out: ['legL'], right_knee_out: ['legR'], wrists_distance: ['armL', 'armR'], wrist_low: ['armL', 'armR'],
+                    left_knee_out: ['legL'], right_knee_out: ['legR'], wrists_distance: ['armL', 'armR'], wrist_low: ['armL', 'armR', 'torso'],
                     lean: ['torso'], head_tilt: ['head'], hip_drop: ['torso', 'legL', 'legR'], hip_rise: ['torso', 'legL', 'legR'],
                     step_cadence: ['legL', 'legR'], clap: ['armL', 'armR'] };
 const figParts = f => FIG_PARTS[f] || (f.startsWith('left_') ? ['armL'] : f.startsWith('right_') ? ['armR'] : []);
 
 function figBody(q) {
-  const hy = 1 + q.drop, sy = hy - Math.sqrt(1 - q.lean * q.lean), P = {};
-  P.nose = { x: q.lean + q.tilt, y: sy - 0.35 };
+  const hy = 1 + q.drop, sy = hy - Math.sqrt(1 - q.lean * q.lean) * (1 - q.fold), P = {};
+  P.nose = { x: q.lean + q.tilt, y: sy - 0.35 * (1 - 2 * q.fold) };   // bowing: the head drops to the shoulders
   for (const [s, sign] of [['L', -1], ['R', 1]]) {   // mirrored: the user's left is on the image left
     const sh = { x: q.lean + sign * 0.25, y: sy };
     const t = q['raise' + s] * Math.PI / 180, u = [sign * Math.sin(t), Math.cos(t)];
@@ -34,7 +35,10 @@ function figBody(q) {
       knee = { x: hip.x + sign * out, y: hy + down };
       const dx = -sign * Math.max(0, Math.min(0.5, q['foot' + s]));
       ankle = { x: knee.x + dx, y: knee.y + Math.sqrt(0.25 - dx * dx) };
-    } else {   // foot on the ground; a squat or a wide stance bends the knee outwards to make up the length
+    }
+    // a lift too small to clear the floor with the hips dropped is a planted foot, not a leg through the ground:
+    // else a straight back leg (warrior) is drawn hanging under the hip instead of reaching out to the side
+    if (!ankle || ankle.y > 2) {   // foot on the ground; a squat or a wide stance bends the knee outwards to make up the length
       const dx = footX - hip.x;
       ankle = { x: footX, y: Math.hypot(dx, 2 - hy) > 1 ? hy + Math.sqrt(Math.max(0, 1 - dx * dx)) : 2 };   // too far: foot lifts a touch
       const ay = ankle.y - hy, d = Math.hypot(dx, ay) || 1e-9, h = Math.sqrt(Math.max(0, 0.25 - d * d / 4));
@@ -53,21 +57,23 @@ function figAngle(a, b, c) {
   return Math.acos(Math.max(-1, Math.min(1, cos))) * 180 / Math.PI;
 }
 
+// u: in torso lengths as seen, like u() in features.py, so a fold (a shorter torso on screen) scales them up
 function figFeatures(q, P) {
   const f = {}, sx = (P.sL.x + P.sR.x) / 2, hipY = (P.hL.y + P.hR.y) / 2;
+  const torso = Math.hypot(sx - (P.hL.x + P.hR.x) / 2, P.sL.y - hipY) || 1e-6, u = v => v / torso;
   for (const [side, s, sign] of [['left', 'L', -1], ['right', 'R', 1]]) {
     const sh = P['s' + s], el = P['e' + s], wr = P['w' + s];
     f[side + '_arm_raise'] = figAngle({ x: sh.x, y: sh.y + 1 }, sh, el);
     f[side + '_arm_angle'] = figAngle(sh, el, wr);
-    f[side + '_wrist_out'] = sign * (wr.x - sh.x);
-    f[side + '_wrist_up'] = sh.y - wr.y;
+    f[side + '_wrist_out'] = u(sign * (wr.x - sh.x));
+    f[side + '_wrist_up'] = u(sh.y - wr.y);
     f[side + '_knee_angle'] = figAngle(P['h' + s], P['k' + s], P['a' + s]);
-    f[side + '_knee_out'] = sign * (P['k' + s].x - P['h' + s].x);
+    f[side + '_knee_out'] = u(sign * (P['k' + s].x - P['h' + s].x));
   }
-  f.wrists_distance = Math.hypot(P.wL.x - P.wR.x, P.wL.y - P.wR.y);
-  f.wrist_low = Math.max(P.wL.y, P.wR.y) - hipY;
-  f.lean = sx - (P.hL.x + P.hR.x) / 2;
-  f.head_tilt = P.nose.x - sx;
+  f.wrists_distance = u(Math.hypot(P.wL.x - P.wR.x, P.wL.y - P.wR.y));
+  f.wrist_low = u(Math.max(P.wL.y, P.wR.y) - hipY);
+  f.lean = u(sx - (P.hL.x + P.hR.x) / 2);
+  f.head_tilt = u(P.nose.x - sx);
   for (const [feat, k] of Object.entries(FIG_DIRECT)) f[feat] = q[k];
   return f;
 }
@@ -87,7 +93,9 @@ function figMiss(f, conds) {
 function figCost(q, conds) {
   let cost = figMiss(figFeatures(q, figBody(q)), conds);
   for (const [k, [lo, hi]] of Object.entries(FIG_BOUNDS)) cost += 0.02 * ((q[k] - FIG_REST[k]) / (hi - lo)) ** 2;
-  return cost;
+  // fold only when nothing else will do: a shorter torso scales up every torso-length feature, so a slight bow would
+  // otherwise stand in for raising the arms higher
+  return cost + 0.2 * q.fold;
 }
 
 // Pattern search over the given parameters: nudge each up and down, halve the steps when nothing helps.
@@ -108,15 +116,19 @@ function figSearch(q, keys, cost) {
 }
 
 // From the resting pose, once per elbow-bend direction; keep the cheapest. Hands together overhead (steeple, crescent)
-// can't be reached from arms down, one step at a time, so a miss tries again from arms up.
+// can't be reached from arms down, one step at a time, so a miss tries again from arms up. Likewise a straight leg
+// reaching out to the side (warrior): spreading the foot alone bends the knee, so it needs the hips dropped with it.
 const FIG_ARMS_UP = { raiseL: 170, raiseR: 170, angleL: 120, angleR: 120 };
-function solveFigure(conds) {
+const FIG_WIDE = { footL: 0.5, footR: 0.5, drop: 0.15 };
+// anyFit: the first figure that meets every condition, not the most relaxed one; enough to know a body can hold them
+function solveFigure(conds, anyFit = false) {
   let best = null, bestCost = Infinity;
-  for (const start of [{}, FIG_ARMS_UP]) {
+  for (const start of [{}, FIG_ARMS_UP, FIG_WIDE]) {
     for (const bendL of [1, -1]) for (const bendR of [1, -1]) {
       const q = { ...FIG_REST, ...start, bendL, bendR };
       const cur = figSearch(q, Object.keys(FIG_BOUNDS), q => figCost(q, conds));
       if (cur < bestCost) { bestCost = cur; best = q; }
+      if (anyFit && !figUnmet(conds, best).length) return best;
     }
     if (!figUnmet(conds, best).length) break;
   }
@@ -126,7 +138,7 @@ function solveFigure(conds) {
 // ---------- sweep: move the highlighted parts through the whole range the conditions allow ----------
 // For each conditioned feature, push the figure to its lowest then highest value that still meets every
 // condition, moving only the highlighted parts, and tween base -> low -> high -> base.
-const FIG_KEYS = { armL: ['raiseL', 'angleL'], armR: ['raiseR', 'angleR'], torso: ['lean', 'drop'], head: ['tilt'],
+const FIG_KEYS = { armL: ['raiseL', 'angleL'], armR: ['raiseR', 'angleR'], torso: ['lean', 'drop', 'fold'], head: ['tilt'],
                    legL: ['kneeL', 'drop', 'footL', 'outL'], legR: ['kneeR', 'drop', 'footR', 'outR'] };
 const FIG_STILL = ['step_cadence', 'hip_rise'];   // already animated by the jog and the hop
 const FIG_TWEEN = 8, FIG_HOLD = 4, FIG_FRAME = 0.1;   // frames per move, frames paused at each end, seconds per frame
@@ -144,8 +156,11 @@ function figSweep(q, conds) {
   const tween = (a, b) => Array.from({ length: FIG_TWEEN }, (_, i) => lerp(a, b, (i + 1) / FIG_TWEEN));
   const frames = [q], sweeps = [];
   if (!keys.length) return { frames, sweeps };
+  // an arm with a motion arrow (swipe, punch, clap) holds still: sweeping its position range would read as the move
+  // itself, a swipe out drawn as a raise overhead
+  const moving = new Set(conds.filter(c => /_(wrist_v[xy]|punch)$/.test(c.feature) || c.feature === 'clap').flatMap(c => figParts(c.feature)));
   for (const f of new Set(conds.map(c => c.feature))) {
-    if (FIG_STILL.includes(f) || figFeatures(q, figBody(q))[f] === undefined) continue;
+    if (FIG_STILL.includes(f) || figParts(f).some(p => moving.has(p)) || figFeatures(q, figBody(q))[f] === undefined) continue;
     const qlo = figPush(q, conds, f, -1, keys), qhi = figPush(q, conds, f, 1, keys);
     const vlo = figFeatures(qlo, figBody(qlo))[f], vhi = figFeatures(qhi, figBody(qhi))[f], [lo, hi] = rangeOf(f);
     if (vhi - vlo < 0.02 * (hi - lo)) continue;   // pinned: nothing worth showing
@@ -160,8 +175,20 @@ function figUnmet(conds, q) {
   return conds.filter(c => f[c.feature] !== undefined && !(c.op === '>' ? f[c.feature] > c.value : f[c.feature] < c.value));
 }
 
+// conditions + caption -> svg. Loading a group redraws every pose card, and the library and clash panel draw the same
+// presets again; solving each takes up to a few hundred ms. Cleared when it gets big (dragging a slider adds one a step).
+const figSVGs = new Map();
 function figureSVG(conds, caption = true) {
   if (!conds.length || !Object.keys(info).length) return '';
+  const k = caption + JSON.stringify(conds);
+  if (!figSVGs.has(k)) {
+    if (figSVGs.size > 500) figSVGs.clear();
+    figSVGs.set(k, drawFigure(conds, caption));
+  }
+  return figSVGs.get(k);
+}
+
+function drawFigure(conds, caption) {
   const q = solveFigure(conds), unmet = figUnmet(conds, q);
   const { frames, sweeps } = unmet.length ? { frames: [q], sweeps: [] } : figSweep(q, conds);
   const dur = (frames.length * FIG_FRAME).toFixed(1);
@@ -256,49 +283,82 @@ const clashGroups = f => f.includes('knee') ? [f.startsWith('left_') ? 'legL' : 
   : f.startsWith('wrist') || f === 'clap' ? ['armL', 'armR'] : [f];
 const poseGroups = p => new Set(p.conditions.flatMap(c => clashGroups(c.feature)));
 
+// Each overlapping pair needs a figure solved to know a body can hold it: hundreds of pairs, tens of seconds, for a
+// big group. So the search runs a slice at a time between frames, and the page stays usable; a newer run (after an
+// edit) supersedes it. Whether a body can hold a set of conditions is remembered, so a rerun after an edit is quick.
+let clashRun = 0;
+const clashFits = new Map();   // conditions JSON -> a body can hold them
+const pause = () => new Promise(r => setTimeout(r));
+
 // Poses on unrelated body parts (jog + raise arm) firing together is a combo, not a clash: only pairs
-// sharing a feature group are checked. Returns { clashes, combos } where combos counts the skipped pairs.
-function findClashes() {
+// sharing a feature group are checked. Returns { clashes, combos } where combos counts the skipped pairs,
+// or null if a newer run started meanwhile.
+async function findClashes(run) {
   const live = poses.filter(p => p.enabled !== false && p.conditions.length);
   const out = [];
-  let combos = 0;
-  live.forEach((a, i) => live.slice(i + 1).forEach(b => {
-    if (a.key === b.key) return;
+  let combos = 0, slice = performance.now();
+  for (let i = 0; i < live.length; i++) for (const b of live.slice(i + 1)) {
+    const a = live[i];
+    if (a.key === b.key) continue;
     const ga = poseGroups(a);
-    if (![...poseGroups(b)].some(g => ga.has(g))) { combos++; return; }
+    if (![...poseGroups(b)].some(g => ga.has(g))) { combos++; continue; }
     const A = poseBox(a), B = poseBox(b), both = {};
+    let apart = false;
     for (const f of new Set([...Object.keys(A), ...Object.keys(B)])) {
       const ra = A[f] || [-Infinity, Infinity], rb = B[f] || [-Infinity, Infinity];
       both[f] = [Math.max(ra[0], rb[0]), Math.min(ra[1], rb[1])];
-      if (both[f][0] >= both[f][1]) return;
+      if (both[f][0] >= both[f][1]) { apart = true; break; }
     }
-    const conds = [...a.conditions, ...b.conditions];
-    if (figUnmet(conds, solveFigure(conds)).length) return;   // ranges overlap but no body can hold it
+    if (apart) continue;
+    const conds = [...a.conditions, ...b.conditions], k = JSON.stringify(conds);
+    if (!clashFits.has(k)) {
+      if (performance.now() - slice > 30) { await pause(); slice = performance.now(); if (run !== clashRun) return null; }
+      clashFits.set(k, !figUnmet(conds, solveFigure(conds, true)).length);
+    }
+    if (!clashFits.get(k)) continue;   // ranges overlap but no body can hold it
     const kind = boxWithin(A, B) && boxWithin(B, A) ? 'same' : boxWithin(B, A) ? 'b-in-a' : boxWithin(A, B) ? 'a-in-b' : 'overlap';
     out.push({ a, b, kind, both, conds });
-  }));
+  }
   return { clashes: out, combos };
 }
 
 const poseLabel = p => `<b>${esc(p.name)}</b> <span class="small">(${esc(p.key)})</span>`;
 
-function renderClashes() {
-  const root = document.getElementById('clashes');
-  if (!Object.keys(info).length) { root.innerHTML = ''; return; }
-  const { clashes: list, combos } = findClashes();
-  const btn = document.getElementById('clashBtn');
-  btn.textContent = `clashes (${list.length})`;
-  btn.classList.toggle('warn', list.length > 0);
+let clashes = null;   // the latest search's result, drawn when the panel opens
+async function renderClashes() {
+  const btn = document.getElementById('clashBtn'), run = ++clashRun;
+  if (!Object.keys(info).length) { clashes = null; document.getElementById('clashes').innerHTML = ''; return; }
+  btn.textContent = 'clashes (…)';
+  const found = await findClashes(run);
+  if (!found) return;
+  clashes = found;
+  btn.textContent = `clashes (${found.clashes.length})`;
+  btn.classList.toggle('warn', found.clashes.length > 0);
+  drawClashList();
+}
+
+// Only while the panel is open, and the figures a few at a time after the text: a big group has 150-odd clashes.
+let clashDraw = 0;
+async function drawClashList() {
+  const root = document.getElementById('clashes'), draw = ++clashDraw;
+  if (!clashes || !document.getElementById('clashPanel').classList.contains('open')) return;
+  const { clashes: list, combos } = clashes;
   const note = combos ? ` ${combos} pair${combos > 1 ? 's' : ''} on separate body parts can combine (e.g. jog + arm raise); not shown.` : '';
   if (!list.length) { root.innerHTML = `<p class="small">No clashes: no two poses on the same body part fire together.${note}</p>`; return; }
-  root.innerHTML = `<p class="small">Poses on the same body part that can fire at once.${note}</p>` + list.map(({ a, b, kind, both, conds }) => {
+  root.innerHTML = `<p class="small">Poses on the same body part that can fire at once.${note}</p>` + list.map(({ a, b, kind, both }) => {
     const where = Object.entries(both).map(([f, r]) => `<code>${rangeText(f, r)}</code>`).join(', ');
     const text = kind === 'same' ? `${poseLabel(a)} and ${poseLabel(b)} have the same conditions: they always fire together.`
       : kind === 'b-in-a' ? `Every ${poseLabel(b)} also fires ${poseLabel(a)}.`
       : kind === 'a-in-b' ? `Every ${poseLabel(a)} also fires ${poseLabel(b)}.`
       : `${poseLabel(a)} and ${poseLabel(b)} both fire when ${where}.`;
-    return `<div class="clash"><div class="fig">${figureSVG(conds, false)}</div><div>${text}</div></div>`;
+    return `<div class="clash"><div class="fig"></div><div>${text}</div></div>`;
   }).join('');
+  const figs = root.querySelectorAll('.clash .fig');
+  let slice = performance.now();
+  for (let i = 0; i < list.length; i++) {
+    if (performance.now() - slice > 30) { await pause(); slice = performance.now(); if (draw !== clashDraw) return; }
+    figs[i].innerHTML = figureSVG(list[i].conds, false);
+  }
 }
 
 let clashFrame = null;

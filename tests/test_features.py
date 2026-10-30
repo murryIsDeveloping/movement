@@ -149,6 +149,21 @@ def test_held_squat_lasts():
     assert f["hip_drop"] > 0.65
 
 
+def test_held_poses_fade_the_same_at_any_frame_rate():
+    # baselines drift per second, not per frame: a slow laptop's 30s hold lasts as long as a fast camera's
+    def hold(fps):
+        stand = [(i / fps, standing()) for i in range(fps)]
+        knee = standing(); knee[L.LEFT_KNEE, 1] -= 0.1
+        e = FeatureEngine(); run(e, stand)
+        squat = run(e, [(1.0 + i / fps, hips_at(0.15 * min(i, fps // 3) / (fps // 3))) for i in range(30 * fps)])
+        e = FeatureEngine(); run(e, stand)
+        lift = run(e, [(1.0 + i / fps, knee) for i in range(30 * fps)])
+        return squat["hip_drop"], lift["left_knee_lift"]
+    base = hold(30)
+    for fps in (15, 60):
+        assert np.allclose(hold(fps), base, atol=0.01)
+
+
 def test_stepping_back_is_not_a_knee_lift():
     # knee height is in torso lengths, so a smaller body in the picture reads the same
     e = FeatureEngine()

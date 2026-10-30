@@ -11,8 +11,8 @@ Structural problems that slowed building coaching, knee features and holds/reps 
 | 01 | [The browser code can't be tested](architecture/01-browser-code-untestable.md) | medium | open |
 | 02 | [What the app knows about each feature is spread across five places](architecture/02-feature-metadata-scattered.md) | medium | open |
 | 03 | [Recordings can't replay a feature change](architecture/03-recordings-lack-landmarks.md) | small | open |
-| 04 | [Every left/right pose is written out twice](architecture/04-left-right-presets-duplicated.md) | small | open |
-| 05 | [Baseline drift is set per frame, not per second](architecture/05-baseline-rates-per-frame.md) | small | open |
+| 04 | [Every left/right pose is written out twice](architecture/04-left-right-presets-duplicated.md) | small | done |
+| 05 | [Baseline drift is set per frame, not per second](architecture/05-baseline-rates-per-frame.md) | small | done |
 
 Suggested order: 01 and 03 first, since they make every later change checkable (the GUI logic in tests, feature changes against real sessions). 02 builds on 01's test runner. 04 and 05 are small and independent.
 

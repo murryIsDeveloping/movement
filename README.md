@@ -32,7 +32,7 @@ No special permissions. Run as a normal user, not admin: WoW must run at the sam
 ## Dev run
 
 ```sh
-.venv/bin/python app.py
+.venv/bin/python app.py      # Windows: .venv\Scripts\python app.py
 ```
 
 Opens `http://localhost:8765`. Config is `config.yaml` in the repo root. Camera and Accessibility permission then go to whatever runs Python (Terminal, VS Code…), which is broad; prefer the packaged app for real use.
@@ -61,9 +61,11 @@ curl -L -o models/pose_landmarker_lite.task https://storage.googleapis.com/media
 - **learn**: the drill's screen without the clock, for learning poses. Goes through each active pose in order (or a library group's, with that group's **learn** button, which loads the group first if it isn't active), showing its stick figure, its preset's notes and a live tick-list of its conditions. Hold a position for 5s, or do a movement 3 times, and it moves on; **skip** gives up on one. Ends with the drill's results table, and is recorded as `recordings/learn-<date>-<time>.json` when running from source.
 - **coaching** (drill and learn): while a pose isn't hit, a yellow line under the prompt says what to fix, for the unmet condition you're furthest from ("raise your left arm higher", "squat lower"). Positions come before movements, so a punch pose asks for the arm out before asking for the punch. It appears after 1s, so moving into the pose doesn't flicker it. With **voice** ticked (top bar; remembered per browser) the browser reads out each pose's name as it's prompted, and the cue from 2s in: a new cue at most every 2.5s, the same one again every 5s. Each spoken cue is a `coach` event in the recording.
 - **stick figure** on each pose: a body position that fires it, mirrored like the camera preview. Jump and jog animate.
-- **clashes (N)**: opens a side panel (Esc closes) listing pairs of poses on the same body part (same feature, or same arm) that can fire together, with the overlapping range and a figure of it. Poses on separate body parts (jog + arm raise) are combos and are not listed.
+- **clashes (N)**: opens a side panel (Esc closes) listing pairs of poses on the same body part (same feature, or same arm) that can fire together, with the overlapping range and a figure of it. Poses on separate body parts (jog + arm raise) are combos and are not listed. The count is worked out in the background after each change and shows **clashes (…)** until it's ready; a big group takes a while the first time.
+- **Loading poses…**: loading a group (or importing) redraws every pose's stick figure, a second or two for a big group the first time. A loading screen covers it, with the camera preview and live updates paused meanwhile. Figures are remembered, so going back to a group is quick.
+- **group picker** (next to *Poses*): shows which library group the active poses are, or *custom* once you've added, removed, rebound or tuned any. Pick another group to switch to it, the same as its **load**. It only asks before replacing when your poses are custom, since switching away from an untouched group loses nothing.
 - **library**: side panel of preset poses, each marked **tested** or **untested**, with notes on how to do it, and **groups** of them.
-  - **Built-ins** ship with the app (`presets.yaml`) and are locked so they can't be broken: **use** one, **clone** it into your own preset to rework, or put it in your own groups. Your presets and groups are saved in `my_presets.yaml` next to `config.yaml`. Running from source, built-ins are editable too, which is how they get tuned before shipping.
+  - **Built-ins** ship with the app (`presets.yaml`) and are locked so they can't be broken: **use** one, **clone** it into your own preset to rework, or put it in your own groups. Your presets and groups are saved in `my_presets.yaml` next to `config.yaml`. Built-ins are locked even running from source; they are tuned by editing `presets.yaml` directly (by hand or with Claude), so nothing clicked in the app can change them.
   - **use** adds a preset to the active poses; **+ new preset** starts a blank one there. Your own presets' name, default key, notes and status edit in place.
   - A **group** is a setup for one game or class (built-in: *wow hunter*, *wow mage*, *mario*, *light movements*, *workout*, *yoga*): its presets plus the key each presses in that game, overriding the preset's default key (blank = default). **load** replaces the active poses with a group, **add** appends it. Make one empty, by ticking presets and **+ group from ticked**, with a preset's **+ group…** menu, by **clone**-ing a built-in group, or with **+ group from active poses**, which keeps the keys the active poses are bound to now.
 - **badge** on each pose: its preset's status (click to flip tested/untested), **changed** when it's been tuned since it was last saved to the preset, or **not in library**. **→ library** saves the pose's conditions and timings into its preset; for a built-in (locked) it saves a new preset of yours, "<name> tuned", instead. Keys are bindings, not tuning: they belong to groups and aren't saved back.
@@ -78,5 +80,5 @@ Stand 2–3 m back, full body in frame, plain background, even light.
 ## Tests
 
 ```sh
-.venv/bin/pytest
+.venv/bin/pytest             # Windows: .venv\Scripts\python -m pytest
 ```

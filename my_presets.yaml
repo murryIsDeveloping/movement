@@ -1,0 +1,50 @@
+presets: []
+groups:
+- name: untested
+  notes: every untested preset, to go through in learn mode and record
+  presets:
+  - both arms up
+  - steeple
+  - t-pose
+  - right arm diagonal up
+  - left arm diagonal up
+  - right arm diagonal down
+  - left arm diagonal down
+  - double biceps
+  - hands on head
+  - hands on hips
+  - salute
+  - cross arms
+  - prayer hands
+  - clap
+  - right hand swipe out
+  - left hand swipe out
+  - right uppercut
+  - left uppercut
+  - star jump
+  - right knee to left elbow
+  - left knee to right elbow
+  - side bend left
+  - side bend right
+  - head tilt left
+  - head tilt right
+  - toe touch
+  - chair
+  - tree right
+  - tree left
+  - warrior 2 right
+  - warrior 2 left
+  - goddess
+  - crescent left
+  - crescent right
+  keys: {}
+- name: retest
+  notes: presets fixed after the first untested learn run
+  presets:
+  - prayer hands
+  - tree right
+  - tree left
+  - right hand swipe out
+  - warrior 2 right
+  - warrior 2 left
+  keys: {}
