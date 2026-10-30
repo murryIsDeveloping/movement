@@ -140,20 +140,23 @@ function openDrillSetup() {
 // Under the setup's hold and reps: which active poses each one applies to with the settings as they stand, since a pose
 // is held, repped or kept up by its kind and the positions choice. A row no pose uses is dimmed.
 function drillPlan() {
-  const val = id => document.getElementById(id).value, holdable = val('drillHoldable') === '1';
+  const s = setupSettings();
   const names = list => list.length > 4 ? `${list.slice(0, 3).join(', ')} +${list.length - 3} more` : list.join(', ');
   const kept = [], held = [], reps = [];
   poses.forEach((p, i) => {
     if (!drillable(i)) return;
-    (sustained(i) ? kept : canHold(i) && holdable ? held : reps).push(esc(p.name));
+    (sustained(i) ? kept : canHold(i) && s.holdable ? held : reps).push(esc(p.name));
   });
-  const lines = [held.length && `<b>held ${esc(val('drillHold'))} s:</b> ${names(held)}`,
-    reps.length && `<b>${esc(val('drillReps'))} reps:</b> ${names(reps)}`,
-    kept.length && `<b>kept up ${esc(val('drillHold'))} s:</b> ${names(kept)}`].filter(Boolean);
+  const lines = [held.length && `<b>held ${s.hold} s:</b> ${names(held)}`,
+    reps.length && `<b>${s.reps} reps:</b> ${names(reps)}`,
+    kept.length && `<b>kept up ${s.hold} s:</b> ${names(kept)}`].filter(Boolean);
   document.getElementById('drillPlan').innerHTML = lines.length ? lines.join('<br>') : 'no enabled poses to drill';
   document.getElementById('drillHold').closest('label').classList.toggle('unused', !held.length && !kept.length);
   document.getElementById('drillReps').closest('label').classList.toggle('unused', !reps.length);
 }
+
+// the setup screen's inputs as the drill will use them: clamped, a blank or broken one its default
+const setupSettings = () => drillSettings(Object.fromEntries(Object.entries(DRILL_INPUTS).map(([k, id]) => [k, document.getElementById(id).value])));
 
 // learn: a list of pose indices to go through in order; null for the timed random drill, with the settings from the
 // setup screen when it's open, or the saved ones ("again")
@@ -161,7 +164,7 @@ function startDrill(learn = null) {
   if (drill && drill.phase !== 'setup') return;   // already running: a second timer would outlive endDrill
   let cfg = drillSettings();
   if (drill && drill.phase === 'setup') {
-    cfg = drillSettings(Object.fromEntries(Object.entries(DRILL_INPUTS).map(([k, id]) => [k, document.getElementById(id).value])));
+    cfg = setupSettings();
     try { localStorage.setItem(DRILL_KEY, JSON.stringify(cfg)); } catch {}
   }
   const pool = learn ? learn.filter(drillable) : poses.map((p, i) => i).filter(drillable);
