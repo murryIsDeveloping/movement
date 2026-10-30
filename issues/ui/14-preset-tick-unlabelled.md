@@ -10,7 +10,7 @@ Every preset card in the library starts with a bare checkbox in front of its nam
 - `static/library.js:242`: the ticked-presets bar.
 
 ## Fix
-Show the multi-select's purpose up front: a quiet **select to group** toggle in the Presets bar. While it's on, the checkboxes appear and the **N ticked · + group from ticked · clear** bar stays visible. While it's off, there are no checkboxes.
+Show the multi-select's purpose up front: a quiet **select to group** toggle in the Presets bar. While it's on, the checkboxes appear and the **N ticked · + group from ticked · cancel** bar stays visible. While it's off, there are no checkboxes.
 
 ## Acceptance
 - No unlabelled checkboxes in the library by default.

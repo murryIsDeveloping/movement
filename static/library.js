@@ -10,8 +10,9 @@
 let lib = { presets: [], groups: [] };
 const editable = x => !x.builtin;
 const libView = { status: 'all', group: '', search: '' };
-const picked = new Set();   // preset names ticked in the panel, for "group selected"
+const picked = new Set();   // preset names ticked in the panel, for "+ group from ticked"
 let picking = false;        // the tick boxes are shown: "select to group" is on
+const stopPicking = () => { picked.clear(); picking = false; };
 const TUNE_FIELDS = ['conditions', 'margin', 'enabled', 'hold', 'delay'];
 const copy = o => JSON.parse(JSON.stringify(o));
 const poseFields = p => Object.fromEntries(TUNE_FIELDS.map(k => [k, copy(p[k])]));
@@ -227,6 +228,9 @@ function renderLibrary() {
   const shown = lib.presets.filter(p => VIEWS[libView.status](p)
     && (!grp || grp.presets.includes(p.name)) && (!q || (p.name + ' ' + p.notes).toLowerCase().includes(q)));
 
+  for (const n of picked) if (!presetOf(n)) picked.delete(n);   // renamed or deleted since it was ticked
+  const hiddenTicks = [...picked].filter(n => !shown.some(p => p.name === n)).length;   // still grouped: say so
+
   root.innerHTML = `
     <h2>Groups</h2>
     <p class="small">A group is a setup for a game or class: its poses and the key each one presses there (blank = the preset's own key).
@@ -241,13 +245,12 @@ function renderLibrary() {
       <button class="pk" title="Tick presets to make a new group of them">select to group</button>
       <button class="primary np" title="New untested preset, also added to the active poses for tuning">+ new preset</button>
     </div>
-    ${picking ? `<div class="bar picking"><span class="small">${picked.size} ticked</span>
+    ${picking ? `<div class="bar"><span class="small">${picked.size} ticked${hiddenTicks ? `, ${hiddenTicks} hidden by the filter` : ''}</span>
       <button class="primary gp" ${picked.size ? '' : 'disabled'}>+ group from ticked</button><button class="pc">cancel</button></div>` : ''}
     <p class="small"><b>use</b> adds a preset to the active poses. Tune it there with the live values, then <b>→ library</b> on the pose saves it back.</p>
     <div class="presets"></div>`;
   root.querySelector('.ng').onclick = () => addGroup('new group', []);
   root.querySelector('.na').onclick = groupFromActive;
-  const stopPicking = () => { picked.clear(); picking = false; };
   root.querySelector('.pk').onclick = () => { picking = true; renderLibrary(); };
   root.querySelector('.pk').hidden = picking;
   if (picking) {

@@ -526,7 +526,11 @@ const clashPanel = document.getElementById('clashPanel');
 document.getElementById('clashBtn').onclick = () => { libPanel.classList.remove('open'); clashPanel.classList.toggle('open'); drawClashList(); };
 document.getElementById('clashClose').onclick = () => clashPanel.classList.remove('open');
 const libPanel = document.getElementById('libPanel');
-document.getElementById('libBtn').onclick = () => { clashPanel.classList.remove('open'); libPanel.classList.toggle('open'); renderLibrary(); };
+document.getElementById('libBtn').onclick = () => {
+  clashPanel.classList.remove('open');
+  if (libPanel.classList.toggle('open')) stopPicking();   // a fresh open starts with no tick boxes
+  renderLibrary();
+};
 document.getElementById('libClose').onclick = () => libPanel.classList.remove('open');
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { clashPanel.classList.remove('open'); libPanel.classList.remove('open'); endDrill(); } });
 document.getElementById('drillBtn').onclick = () => openDrillSetup();
