@@ -203,16 +203,59 @@ const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;'
 let keyNames = new Set();   // pynput Key names, from KEY_NAMES in src/keys.py
 // '' if pynput can press it: one character or a Key name. Until the server's list arrives, the server checks alone.
 const keyError = k => !k ? 'no key set' : k.length === 1 || !keyNames.size || keyNames.has(k) ? ''
-  : `unknown key "${k}": use one character or a key name like space, shift, f1`;
-// Wires a key input (here and in the library): saved on change (blur or Enter), not per keystroke, since a half-typed
-// 'spa' isn't a key. An unknown key is marked invalid, with the reason as its title, and not saved. blankOk: '' saves.
-function keyField(el, save, blankOk = false) {
-  const title = el.title;
-  el.oninput = () => { el.classList.remove('invalid'); el.title = title; };
-  el.onchange = () => {
-    const v = el.value.trim(), err = blankOk && !v ? '' : keyError(v);
-    el.classList.toggle('invalid', !!err); el.title = err || title;
-    if (!err) save(v);
+  : `unknown key "${k}": press the key, or type one character or a key name like page_up, then Enter`;
+// Browser e.key → pynput name. Every value must be in KEY_NAMES (tests/test_keys.py checks). Letters lowercase: Shift+A
+// binds a. Numpad digits bind the main-row digit (pynput has no numpad names); with NumLock off they're arrows etc.
+const KEY_MAP = { ' ': 'space', Enter: 'enter', Tab: 'tab', Escape: 'esc', Backspace: 'backspace', Delete: 'delete',
+  Insert: 'insert', Home: 'home', End: 'end', PageUp: 'page_up', PageDown: 'page_down', ArrowUp: 'up', ArrowDown: 'down',
+  ArrowLeft: 'left', ArrowRight: 'right', CapsLock: 'caps_lock', NumLock: 'num_lock', ScrollLock: 'scroll_lock',
+  Pause: 'pause', PrintScreen: 'print_screen', ContextMenu: 'menu', AltGraph: 'alt_gr', MediaPlayPause: 'media_play_pause',
+  MediaTrackNext: 'media_next', MediaTrackPrevious: 'media_previous', MediaStop: 'media_stop',
+  AudioVolumeUp: 'media_volume_up', AudioVolumeDown: 'media_volume_down', AudioVolumeMute: 'media_volume_mute' };
+const SIDED = { Shift: 'shift', Control: 'ctrl', Alt: 'alt', Meta: 'cmd' };   // + _l/_r from e.location
+const MODS = new Set([...Object.keys(SIDED), 'AltGraph']);
+const EDITING = new Set(['Backspace', 'Delete', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'Enter']);
+const keyName = e => SIDED[e.key] ? SIDED[e.key] + (e.location === 2 ? '_r' : '_l') : KEY_MAP[e.key]
+  || (/^F([1-9]|1\d|2[0-4])$/.test(e.key) || e.key.length === 1 ? e.key.toLowerCase() : '');
+// Wires a key input (here and in the library). Focused, it captures: a named key (space, f1, shift_l, esc...) is bound
+// and saved at once. A modifier binds on release if no other key joined it: a pose holds one key, so Shift+A binds a.
+// A character instead starts typing (Shift+A types a), so names the browser can't capture can be typed; Enter or blur
+// saves that, not each keystroke, since 'spa' isn't a key, and a library save re-renders and would drop focus mid-name.
+// live (pose cards, whose saves don't re-render): a first character is also saved at once. Escape mid-name cancels.
+// Tab moves focus as usual (type tab to bind it); Ctrl/Cmd+key are left to the browser (paste, undo).
+// An unknown key is marked invalid, with the reason as its title, and not saved. blankOk: '' saves, Backspace clears.
+function keyField(el, save, blankOk = false, live = false) {
+  const title = el.title, hint = el.placeholder;
+  let typing = false, mod = null, prev = el.value;   // mod: the modifier down, while no other key has joined it
+  const commit = () => {
+    const v = el.value.trim().toLowerCase(), err = blankOk && !v ? '' : keyError(v);
+    el.value = v; el.classList.toggle('invalid', !!err); el.title = err || title;
+    if (!err) save(prev = v); else if (live) save(prev);   // live already saved the first letter: put the old key back
+  };
+  const bind = v => { el.value = v; typing = false; commit(); el.select(); };   // selected: shows the next key replaces it
+  el.oninput = () => { typing = true; el.classList.remove('invalid'); el.title = title; };   // also IME, dead keys, paste
+  el.onfocus = () => { typing = false; mod = null; prev = el.value; el.placeholder = 'press a key…'; el.select(); };
+  el.onmouseup = e => { if (!typing) e.preventDefault(); };   // else the focusing click unselects
+  el.onblur = () => { el.placeholder = hint; mod = null; if (typing) commit(); typing = false; };   // mod: Alt+Tab's stray keyup
+  el.onkeydown = e => {
+    if (e.key === 'Escape') e.stopPropagation();   // binds esc or cancels: mustn't also close the panels or end the drill
+    if (MODS.has(e.key)) { e.preventDefault(); if (!e.repeat) mod = keyName(e); return; }
+    mod = null;
+    const k = keyName(e), char = e.key.length === 1 && e.key !== ' ';
+    if (e.repeat) { if (!typing) e.preventDefault(); return; }   // else a held Space or F5 reaches the browser
+    if (e.isComposing || e.ctrlKey || e.metaKey || e.key === 'Tab' || !k) return;
+    if (typing && e.key === 'Escape') { e.preventDefault(); el.value = prev; el.oninput(); typing = false; el.select(); if (live) save(prev); return; }
+    if (typing && e.key === 'Enter') { e.preventDefault(); bind(el.value); return; }
+    if (typing && (char || EDITING.has(e.key))) return;   // the input edits the name being typed
+    e.preventDefault();
+    // caret at the end: more letters build a name. live saves the letter now but leaves prev, so Esc or a bad name undoes it
+    if (char) { el.value = k; el.oninput(); if (live && !keyError(k)) save(k); return; }
+    bind(blankOk && (e.key === 'Backspace' || e.key === 'Delete') ? '' : k);
+  };
+  el.onkeyup = e => {
+    if (!MODS.has(e.key)) return;
+    e.preventDefault();   // a lone Alt would focus the browser menu
+    if (mod === keyName(e)) { bind(mod); mod = null; }   // AltGr sends Control then AltGraph: the last one down wins
   };
 }
 let dirty = false, saveTimer = null;
@@ -329,7 +372,7 @@ function renderPoses() {
         <button class="up" title="move up" ${pi === 0 ? 'disabled' : ''}>↑</button>
         <button class="down" title="move down" ${pi === poses.length - 1 ? 'disabled' : ''}>↓</button>
         <input class="name" value="${esc(p.name)}" title="pose name">
-        <span class="small">key</span><input class="key" value="${esc(p.key)}" title="pynput key name: a, 1, space, shift, f1 ...">
+        <span class="small">key</span><input class="key" value="${esc(p.key)}" title="click, then press the key: a, space, f1, left shift... To bind by name (tab, num_lock), type it, then Enter. Esc while typing cancels.">
         <span class="small">hold</span><input class="hold" type="number" min="0" step="0.05" value="${p.hold ?? 0}" title="seconds the key stays down after the pose ends: turns a quick punch into a proper press, and rides out brief tracking dropouts">
         <span class="small">delay</span><input class="delay" type="number" min="0" step="0.05" value="${p.delay ?? 0}" title="seconds the pose must be held before the key goes down: stops it firing while an arm passes through on the way to another pose">
         <span class="badge"></span>
@@ -343,7 +386,7 @@ function renderPoses() {
       <div class="capslot"></div>`;
     const refresh = () => { div.querySelector('.fig').innerHTML = figureSVG(p.conditions); scheduleClashes(); };
     div.querySelector('.name').oninput = e => { p.name = e.target.value; scheduleSave(); };
-    keyField(div.querySelector('.key'), k => { p.key = k; scheduleSave(); });
+    keyField(div.querySelector('.key'), k => { p.key = k; scheduleSave(); }, false, true);
     div.querySelector('.hold').oninput = e => { p.hold = Math.max(0, parseFloat(e.target.value) || 0); scheduleSave(); };
     div.querySelector('.delay').oninput = e => { p.delay = Math.max(0, parseFloat(e.target.value) || 0); scheduleSave(); };
     div.querySelector('.en').onchange = e => { p.enabled = e.target.checked; renderPoses(); scheduleSave(); };

@@ -230,7 +230,7 @@ function renderLibrary() {
       <div class="chips">${g.presets.map(n => {
         const k = g.keys[n] || '', def = presetOf(n).key;
         return `<span class="chip ${presetOf(n).status}">${esc(n)}${ed
-          ? `<input class="gk" data-n="${esc(n)}" value="${esc(k)}" placeholder="${esc(def)}" title="key in this group (blank = preset's ${esc(def)})"><button data-n="${esc(n)}" title="remove from group">×</button>`
+          ? `<input class="gk" data-n="${esc(n)}" value="${esc(k)}" placeholder="${esc(def)}" title="key in this group: click, then press it. Backspace clears it (blank = preset's ${esc(def)})."><button data-n="${esc(n)}" title="remove from group">×</button>`
           : ` <code>${esc(k || def)}</code>`}</span>`;
       }).join('')}</div>`;
     el.querySelector('.load').onclick = () => usePresets(g.presets, true, g.keys);
@@ -266,7 +266,7 @@ function renderLibrary() {
           <input type="checkbox" class="pick" title="tick presets, then + group from ticked" ${picked.has(pr.name) ? 'checked' : ''}>${ed ? `
           <input class="name" value="${esc(pr.name)}" title="preset name">
           <select class="st" title="flip to tested once it works in a drill">${['tested', 'untested'].map(s => `<option ${s === pr.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
-          <span class="small">default key</span><input class="key" value="${esc(pr.key)}" title="pynput key name: a, 1, space, shift, f1 ... Groups can bind it to another key.">` : `
+          <span class="small">default key</span><input class="key" value="${esc(pr.key)}" title="click, then press the key: space, f1, left shift... Letters, digits and names the browser can't capture (tab, num_lock): type, then Enter. Esc while typing cancels. Groups can bind it to another key.">` : `
           <b class="name">${esc(pr.name)}</b><span class="badge ${pr.status}">${pr.status}</span>
           <span class="small">default key <code>${esc(pr.key)}</code></span>`}
           ${pr.builtin ? '<span class="tag">built-in</span>' : ''}
