@@ -87,6 +87,17 @@ def test_running_from_source_edits_builtins(files):
     assert stored["presets"][0]["status"] == "untested" and "builtin" not in stored["presets"][0]
 
 
+def test_running_from_source_keeps_builtin_presets(files):
+    b, u = files
+    before = b.read_text()
+    for change in (lambda ps: ps.pop(0), lambda ps: ps[0].update(name="renamed")):
+        lib = library.load(b, u)
+        change(lib["presets"])
+        with pytest.raises(ValueError, match="can't be deleted"):
+            library.save(lib, edit_builtins=True, builtin=b, user=u)
+    assert b.read_text() == before
+
+
 def test_load_survives_builtins_changing_under_user_file(files):
     b, u = files
     u.write_text(yaml.safe_dump({"presets": [preset("arm"), preset("x")],

@@ -3,7 +3,8 @@
 // ---------- preset library: tested/untested presets, and groups of them to load as the active poses ----------
 // The library is edited here and sent whole to the server (PUT /library), which validates and saves it.
 // Built-in presets and groups (builtin: true) ship with the app and are read-only: use, clone, or put them in your
-// own groups. Running from source (lib.edit_builtins) they're editable, to tune them before shipping.
+// own groups. Running from source (lib.edit_builtins) they're editable, to tune them before shipping, but built-in
+// presets are never deleted or renamed.
 // Active poses remember the preset they came from (pose.preset), so tuning one live can be saved back to it.
 // A group is a setup for one game or class: its presets, plus keys overriding their default keys (g.keys).
 // Keys are bindings, not tuning: they aren't compared or saved back to the preset from a pose card.
@@ -188,7 +189,7 @@ function renderLibrary() {
     <h2>Groups</h2>
     <p class="small">A group is a setup for a game or class: its poses and the key each one presses there (blank = the preset's own key).
       <b>load</b> replaces the active poses with the group; <b>add</b> appends it. ${lib.edit_builtins
-      ? 'Running from source: built-ins are editable here, and changes go into the shipped <code>presets.yaml</code>.'
+      ? 'Running from source: built-ins are editable here, and changes go into the shipped <code>presets.yaml</code>. Built-in presets can\'t be deleted or renamed: <b>clone</b> one to make your own.'
       : 'Built-ins are locked: <b>clone</b> one to make your own.'}</p>
     <div class="groups"></div>
     <div class="bar"><button class="ng">+ empty group</button><button class="na" title="A group of the presets behind the active poses, with the keys they're bound to now">+ group from active poses</button></div>
@@ -265,7 +266,7 @@ function renderLibrary() {
       <div>
         <div class="pose-head">
           <input type="checkbox" class="pick" title="tick presets, then + group from ticked" ${picked.has(pr.name) ? 'checked' : ''}>${ed ? `
-          <input class="name" value="${esc(pr.name)}" title="preset name">
+          ${pr.builtin ? `<b class="name">${esc(pr.name)}</b>` : `<input class="name" value="${esc(pr.name)}" title="preset name">`}
           <select class="st" title="flip to tested once it works in a drill">${['tested', 'untested'].map(s => `<option ${s === pr.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
           <span class="small">default key</span><input class="key" value="${esc(pr.key)}" title="click, then press the key: space, f1, left shift... Letters, digits and names the browser can't capture (tab, num_lock): type, then Enter. Esc while typing cancels. Groups can bind it to another key.">` : `
           <b class="name">${esc(pr.name)}</b><span class="badge ${pr.status}">${pr.status}</span>
@@ -277,7 +278,7 @@ function renderLibrary() {
           ${others.length ? `<select class="tog"><option value="">+ group…</option>${others.map(g => `<option>${esc(g.name)}</option>`).join('')}</select>` : ''}</div>
         <div class="bar">
           <button class="use primary">use</button>${inUse.has(pr.name) ? '<span class="small">in active poses</span>' : ''}
-          <button class="cl">clone</button>${ed ? '<button class="danger del">delete</button>' : ''}
+          <button class="cl">clone</button>${!pr.builtin ? '<button class="danger del">delete</button>' : ''}
           <span class="small">${pr.conditions.length} conditions${pr.delay ? `, delay ${pr.delay}s` : ''}${pr.hold ? `, hold ${pr.hold}s` : ''}</span>
         </div>
       </div>`;
@@ -288,12 +289,12 @@ function renderLibrary() {
     el.querySelector('.use').onclick = () => usePresets([pr.name], false);
     el.querySelector('.cl').onclick = () => clonePreset(pr);
     ps.appendChild(el);
+    if (!pr.builtin) el.querySelector('.del').onclick = () => deletePreset(pr);
     if (!ed) continue;
-    el.querySelector('.name').onchange = e => renamePreset(pr, e.target.value);
+    if (!pr.builtin) el.querySelector('.name').onchange = e => renamePreset(pr, e.target.value);
     el.querySelector('.st').onchange = e => { pr.status = e.target.value; saveLibrary(); };
     keyField(el.querySelector('.key'), k => { pr.key = k; saveLibrary(); });
     el.querySelector('.notes').onchange = e => { pr.notes = e.target.value; saveLibrary(); };
-    el.querySelector('.del').onclick = () => deletePreset(pr);
   }
   if (!shown.length) ps.innerHTML = '<p class="small">No presets match.</p>';
 }

@@ -5,7 +5,8 @@ the preset's default key, since the same jump is space in one game and z in anot
 
 Built-in presets and groups ship with the app in presets.yaml and are read-only, so they can't be broken: users
 build on them with their own presets (often clones of built-ins) and groups in my_presets.yaml, next to config.yaml.
-Running from source, built-ins are editable too: that is how they get tuned before shipping.
+Running from source, built-ins are editable too: that is how they get tuned before shipping. Built-in presets are
+never deleted or renamed though, only tuned or cloned.
 """
 from pathlib import Path
 
@@ -77,8 +78,14 @@ def load(builtin: Path | None = None, user: Path | None = None) -> dict:
 
 def save(lib: dict, edit_builtins: bool, builtin: Path | None = None, user: Path | None = None) -> dict:
     """Saves the user's half. Built-ins come from disk unless edit_builtins, so a client can't change them.
-    Raises ValueError like validate, e.g. a user preset taking a built-in's name."""
+    Raises ValueError like validate, e.g. a user preset taking a built-in's name, or when edit_builtins drops or
+    renames a built-in preset."""
     builtin, user = builtin or BUILTIN, user or USER
+    if edit_builtins:   # before validate, which would only complain about a group naming the missing preset
+        kept = {p["name"] for p in lib.get("presets") or [] if p.get("builtin")}
+        missing = [p["name"] for p in _read(builtin).get("presets") or [] if p["name"] not in kept]
+        if missing:
+            raise ValueError(f"built-in presets can't be deleted or renamed: {', '.join(missing)}")
     lib = validate(lib)
     lib = _merge(_part(lib, True) if edit_builtins else _read(builtin), _part(lib, False))
     if edit_builtins:
