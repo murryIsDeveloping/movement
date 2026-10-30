@@ -161,6 +161,7 @@
   .drill .big.ok { color:var(--on); }
   .drill .big.bad { color:var(--bad); }
   .drill .sub { font-size:22px; color:var(--dim); text-align:center; min-height:1.4em; }
+  .drill .coach { font-size:clamp(22px, 4vw, 36px); font-weight:700; color:var(--warn); text-align:center; min-height:1.3em; }
   .drill .results { width:min(640px, 100%); }
   .drill .cue { display:flex; align-items:center; gap:16px; }
   .drill .cue .fig svg { width:90px; margin:0; }
@@ -226,7 +227,7 @@
   <div id="library"></div>
 </aside>
 <div class="drill" id="drill">
-  <div class="drill-head"><span class="clock"></span><span class="pill" id="drillKeys" title="Turned off for the drill, so poses don't type into this page. Set back when the drill ends.">keys off</span><button id="drillSkip" title="give up on this pose and go to the next">skip</button><button id="drillClose" title="stop (Esc)">×</button></div>
+  <div class="drill-head"><span class="clock"></span><span class="pill" id="drillKeys" title="Turned off for the drill, so poses don't type into this page. Set back when the drill ends.">keys off</span><label class="toggle" title="Read out each pose's name and what to fix, so you needn't look at the screen"><input type="checkbox" id="coachVoice" checked>voice</label><button id="drillSkip" title="give up on this pose and go to the next">skip</button><button id="drillClose" title="stop (Esc)">×</button></div>
   <div class="setup">
     <h2>Drill</h2>
     <p class="small">Random poses from your active ones until the time's up. Long with a short rest makes it a workout.</p>
@@ -237,6 +238,7 @@
   </div>
   <div class="big"></div>
   <div class="sub"></div>
+  <div class="coach"></div>
   <div class="cue"><div class="fig"></div><table class="trace checks"></table></div>
   <img alt="camera">
   <div class="results"></div>
@@ -390,6 +392,12 @@ function scheduleSave() { dirty = true; clearTimeout(saveTimer); saveTimer = set
 const sound = document.getElementById('sound');
 try { sound.checked = localStorage.getItem(SOUND_KEY) !== '0'; } catch {}
 sound.onchange = () => { try { localStorage.setItem(SOUND_KEY, sound.checked ? '1' : '0'); } catch {} };
+const voice = document.getElementById('coachVoice');
+try { voice.checked = localStorage.getItem(VOICE_KEY) !== '0'; } catch {}
+voice.onchange = () => {
+  try { localStorage.setItem(VOICE_KEY, voice.checked ? '1' : '0'); } catch {}
+  if (!voice.checked && window.speechSynthesis) speechSynthesis.cancel();
+};
 // audio needs a user gesture: this click is it, and a started context keeps playing with the tab in the background
 document.getElementById('send').onchange = e => { try { audio = audio || new AudioContext(); } catch {} setSend(e.target.checked); };
 document.getElementById('import').onclick = () => document.getElementById('file').click();

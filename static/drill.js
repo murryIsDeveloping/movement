@@ -21,7 +21,72 @@ function drillSettings(from = null) {
   }));
 }
 
-const drillable = i => poses[i] && poses[i].enabled !== false && poses[i].conditions.length;
+// ---------- coaching: what to fix while the prompted pose isn't hit ----------
+// per feature, what to say when its value needs to go up (op '>') and down ('<'). Left and right are the user's own,
+// which the mirrored preview's are too.
+const COACH = {
+  hip_rise: ['jump higher', 'keep your hips down'],
+  hip_drop: ['squat lower', 'stand taller'],
+  step_cadence: ['jog faster', 'slow your steps'],
+  clap: ['clap your hands together', 'pull your hands apart'],
+  wrists_distance: ['spread your hands apart', 'bring your hands closer together'],
+  wrist_low: ['reach lower', 'raise your hands'],
+  lean: ['lean to your right', 'lean to your left'],
+  head_tilt: ['tilt your head to your right', 'tilt your head to your left'],
+};
+for (const s of ['left', 'right']) Object.assign(COACH, {
+  [`${s}_knee_lift`]: [`lift your ${s} knee higher`, `lower your ${s} knee`],
+  [`${s}_arm_raise`]: [`raise your ${s} arm higher`, `lower your ${s} arm`],
+  [`${s}_arm_angle`]: [`straighten your ${s} arm`, `bend your ${s} elbow more`],
+  [`${s}_wrist_out`]: [`reach your ${s} hand further out`, `bring your ${s} hand in`],
+  [`${s}_wrist_up`]: [`lift your ${s} hand higher`, `lower your ${s} hand`],
+  [`${s}_wrist_vx`]: [`swipe your ${s} hand to your right`, `swipe your ${s} hand to your left`],
+  [`${s}_wrist_vy`]: [`push your ${s} hand up, fast`, `pull your ${s} hand down, fast`],
+  [`${s}_punch`]: [`punch harder with your ${s}`, `slow your ${s} arm`],
+});
+// movements, not positions: coached only once the position is right, since they read 0 until you move
+const COACH_MOVES = /^(hip_rise|step_cadence|clap)$|_(vx|vy|punch)$/;
+const COACH_SHOW = 1, COACH_SAY = 2, COACH_GAP = 2.5, COACH_REPEAT = 5;   // seconds into the prompt; between spoken cues
+const VOICE_KEY = 'movement.voice';
+
+// the unmet condition furthest from its threshold (in its feature's range), positions before movements; '' when all hold
+function coachCue(i) {
+  const conds = (state[i] || {}).conds || [];
+  let best = null;
+  poses[i].conditions.forEach((c, ci) => {
+    const x = live[c.feature];
+    if (conds[ci] || x === undefined || !COACH[c.feature]) return;
+    const [lo, hi] = (info[c.feature] || {}).range || [0, 1];
+    const score = (COACH_MOVES.test(c.feature) ? 0 : 10) + Math.abs(x - c.value) / (hi - lo);
+    if (!best || score > best.score) best = { score, cue: COACH[c.feature][c.op === '>' ? 0 : 1] };
+  });
+  return best ? best.cue : '';
+}
+
+const voiceOn = () => document.getElementById('coachVoice').checked;
+
+function say(text) {
+  if (!voiceOn() || !window.speechSynthesis) return;
+  speechSynthesis.cancel();   // the newest cue wins over one still being read out
+  speechSynthesis.speak(new SpeechSynthesisUtterance(text));
+}
+
+// shown after COACH_SHOW, so moving into the pose doesn't flicker cues; spoken after COACH_SAY, a new cue at most every
+// COACH_GAP and the same one again every COACH_REPEAT
+function coachTick(now, since) {
+  const d = drill, el = d.el.querySelector('.coach');
+  const cue = d.phase === 'prompt' && since >= COACH_SHOW ? coachCue(d.target) : '';
+  el.textContent = cue;
+  if (!cue || since < COACH_SAY) return;
+  const gap = (now - (d.saidAt ?? -Infinity)) / 1000;
+  if (gap >= (cue === d.said ? COACH_REPEAT : COACH_GAP)) {
+    say(cue);
+    d.said = cue; d.saidAt = now;
+    drillEvent('coach', poses[d.target].name, { cue });
+  }
+}
+
+const drillable = i =>poses[i] && poses[i].enabled !== false && poses[i].conditions.length;
 
 // active poses in list order, for learn mode
 const learnPool = () => poses.map((p, i) => i).filter(drillable);
@@ -99,6 +164,8 @@ function endDrill(again = false) {
   saveDrill();   // stopped early: keep what was done
   if (!again) restoreSend();
   clearInterval(drill.timer);
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  drill.el.querySelector('.coach').textContent = '';
   drill.el.classList.remove('open', 'setup');
   drill.el.querySelector('img').removeAttribute('src');   // closes the second MJPEG stream
   drill = null;
@@ -124,8 +191,10 @@ function drillPrompt(now) {
   drill.seenOff = false;   // the target must go off then on, so a hold left over from last time doesn't count
   drill.wrong = new Set();
   drill.wasActive = state.map(s => !!(s && s.active));
+  drill.said = null; drill.saidAt = null;
   drillEvent('prompt', poses[drill.target].name);
   beep(660, 80);
+  say(poses[drill.target].name);   // eyes can stay off the screen
 }
 
 // learn: on to the next pose, or the results after the last one
@@ -157,6 +226,7 @@ function drillTick() {
     el.querySelector('.big').className = 'big bad';
     el.querySelector('.big').textContent = 'Paused';
     el.querySelector('.sub').textContent = paused.length ? `not fully in frame: ${paused.join(', ')}` : 'no body: step into view';
+    el.querySelector('.coach').textContent = '';
     return;
   }
   const since = (now - d.phaseAt) / 1000;
@@ -215,6 +285,7 @@ function drillTick() {
   el.querySelector('.big').innerHTML = big;
   el.querySelector('.big').className = 'big ' + cls;
   el.querySelector('.sub').innerHTML = sub;
+  coachTick(now, (now - d.phaseAt) / 1000);   // the phase may have changed above, so not `since`
   // the figure shows while prompting; learning keeps it up between reps too, as the same pose comes next
   el.querySelector('.cue').style.visibility = d.phase === 'prompt' || (d.learn && d.phase === 'return') ? '' : 'hidden';
   el.querySelector('.checks').innerHTML = d.learn && d.target >= 0 ? learnChecks(d.target) : '';
@@ -247,6 +318,7 @@ function renderDrillResults() {
   el.querySelector('.big').className = 'big';
   el.querySelector('.big').textContent = `${hits}/${d.results.length}`;
   el.querySelector('.sub').textContent = 'done';
+  el.querySelector('.coach').textContent = '';
   el.querySelector('.clock').textContent = '';
   el.querySelector('.cue').style.display = 'none';
   el.classList.remove('learn');   // hides skip
