@@ -45,7 +45,7 @@ curl -L -o models/pose_landmarker_lite.task https://storage.googleapis.com/media
 
 ## GUI
 
-- **send keys to game**: off by default. Tick when WoW is focused and you want keys delivered.
+- **keys off / KEYS ON**: the big button next to the status pills. Off by default; click it when WoW is focused and you want keys delivered. While on, the button is solid green and the camera preview has a green border. While off, the held-key chips under the preview are grey, struck through and labelled *not sent*.
 - **+ new pose**: name, key, conditions (`feature > value`). All conditions true → key held. Dot goes green per condition live.
 - **hold**: seconds the key stays down after the pose ends. Turns a one-frame punch into a proper press and rides out brief tracking dropouts; costs that much delay on release. 0 = release immediately.
 - **delay**: seconds the pose must be held before its key goes down. Stops a pose firing while an arm passes through it on the way somewhere else (raising a hand overhead, a sideways punch ending arm-out); costs that much delay on press. 0 = press immediately.
