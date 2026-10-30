@@ -151,9 +151,11 @@
                background:var(--bg); border-bottom:1px solid var(--line); }   /* close stays in reach on a long scroll */
   .side-head h2 { margin:0; flex:1; }
   button.warn { border-color:var(--warn); color:var(--warn); }
-  .clash { display:grid; grid-template-columns: 70px 1fr; gap:12px; align-items:center; background:var(--panel); border:1px solid var(--line); border-left:6px solid var(--warn); border-radius:8px; padding:8px 12px; margin-bottom:8px; }
+  .clash { display:grid; grid-template-columns: 70px 1fr auto; gap:12px; align-items:center; background:var(--panel); border:1px solid var(--line); border-left:6px solid var(--warn); border-radius:8px; padding:8px 12px; margin-bottom:8px; }
   .clash .fig svg { margin:0; }
-  .clash code { color:var(--warn); }
+  .clash ul { margin:4px 0 0; padding-left:18px; color:var(--warn); }
+  .clash .mark { align-self:start; font-size:12px; padding:2px 8px; }
+  .clash.ok { opacity:.5; border-left-color:var(--off); }
   .side.wide { width:min(600px, 100vw); }
   .badge.looktag { color:var(--accent); border-color:var(--accent); cursor:default; }
   input.key.struck { text-decoration:line-through; color:var(--dim); }
@@ -396,6 +398,7 @@ function connect() {
     checkTrigger();
     if (!Object.keys(info).length) { info = m.feature_info || {}; }
     if (!keyNames.size && m.key_names) keyNames = new Set(m.key_names);
+    takeClashOk(m.clashes_ok);
     // Take the server's poses only when they're a real outside change (import, another tab): not stale
     // copies from before our last save, and never mid-typing, since a re-render drops input focus.
     const incoming = JSON.stringify(m.poses);

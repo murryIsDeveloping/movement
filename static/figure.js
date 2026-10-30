@@ -273,9 +273,11 @@ function poseBox(p) {
 // every position in box b is also inside box a
 const boxWithin = (b, a) => Object.entries(a).every(([f, [lo, hi]]) => { const r = b[f] || [-Infinity, Infinity]; return r[0] >= lo && r[1] <= hi; });
 
+// a range in the pose cards' words: "hip rise > 0.20 t", "65° < right arm raise < 106°"
 function rangeText(f, [lo, hi]) {
-  if (lo > -Infinity && hi < Infinity) return `${lo} < ${f} < ${hi}`;
-  return lo > -Infinity ? `${f} > ${lo}` : `${f} < ${hi}`;
+  const name = f.replace(/_/g, ' ');
+  if (lo > -Infinity && hi < Infinity) return `${fmtU(f, lo)} < ${name} < ${fmtU(f, hi)}`;
+  return lo > -Infinity ? `${name} > ${fmtU(f, lo)}` : `${name} < ${fmtU(f, hi)}`;
 }
 
 // Features on the same arm or leg move together (raise an arm and the wrist rises), so they count as one group.
@@ -319,10 +321,36 @@ async function findClashes(run) {
     const kind = boxWithin(A, B) && boxWithin(B, A) ? 'same' : boxWithin(B, A) ? 'b-in-a' : boxWithin(A, B) ? 'a-in-b' : 'overlap';
     out.push({ a, b, kind, both, conds });
   }
+  out.sort((x, y) => KIND_RANK[x.kind] - KIND_RANK[y.kind]);   // stable: list order within a kind
   return { clashes: out, combos };
 }
 
 const poseLabel = p => `<b>${esc(p.name)}</b> <span class="small">(${esc(p.key)})</span>`;
+// worst first: one pose always firing the other before a partial overlap
+const KIND_RANK = { same: 0, 'b-in-a': 1, 'a-in-b': 1, overlap: 2 };
+
+// Clashes marked fine (expected, or harmless in play), saved in the config as clashes_ok: [name, name, kind], names
+// sorted. They stay listed, dimmed, but don't count: the button only warns about clashes nobody has looked at. A clash
+// that has got worse since (an overlap that now always fires) counts again.
+let clashOk = null, clashOkWant = null, clashOkAt = 0;   // pair key -> kind marked; null until the first broadcast
+const pairKey = (a, b) => JSON.stringify([a.name, b.name].sort());
+const isOk = c => !!clashOk && clashOk.has(pairKey(c.a, c.b)) && KIND_RANK[c.kind] >= KIND_RANK[clashOk.get(pairKey(c.a, c.b))];
+const okList = m => [...m].map(([k, kind]) => [...JSON.parse(k), kind]).sort();
+// from each broadcast; like send keys, our own change wins over the broadcasts still in flight from before it
+function takeClashOk(list) {
+  const incoming = new Map((Array.isArray(list) ? list : []).map(([a, b, kind]) => [JSON.stringify([a, b].sort()), kind]));
+  const sig = JSON.stringify(okList(incoming));
+  if (clashOkWant !== null && sig !== clashOkWant && performance.now() - clashOkAt < 1000) return;
+  clashOkWant = null;
+  if (clashOk && sig === JSON.stringify(okList(clashOk))) return;
+  clashOk = incoming; showClashCount(); drawClashList();
+}
+function setClashOk(c, ok) {
+  if (ok) clashOk.set(pairKey(c.a, c.b), c.kind); else clashOk.delete(pairKey(c.a, c.b));
+  clashOkWant = JSON.stringify(okList(clashOk)); clashOkAt = performance.now();
+  send({ type: 'config', config: { clashes_ok: okList(clashOk) } });
+  showClashCount();
+}
 
 let clashes = null;   // the latest search's result, drawn when the panel opens
 async function renderClashes() {
@@ -332,9 +360,15 @@ async function renderClashes() {
   const found = await findClashes(run);
   if (!found) return;
   clashes = found;
-  btn.textContent = `clashes (${found.clashes.length})`;
-  btn.classList.toggle('warn', found.clashes.length > 0);
+  showClashCount();
   drawClashList();
+}
+// counts only the clashes not marked fine; none left reads as a plain button
+function showClashCount() {
+  if (!clashes) return;
+  const btn = document.getElementById('clashBtn'), n = clashes.clashes.filter(c => !isOk(c)).length;
+  btn.textContent = n ? `clashes (${n})` : 'clashes';
+  btn.classList.toggle('warn', n > 0);
 }
 
 // Only while the panel is open, and the figures a few at a time after the text: a big group has 150-odd clashes.
@@ -342,17 +376,29 @@ let clashDraw = 0;
 async function drawClashList() {
   const root = document.getElementById('clashes'), draw = ++clashDraw;
   if (!clashes || !document.getElementById('clashPanel').classList.contains('open')) return;
-  const { clashes: list, combos } = clashes;
+  const { combos } = clashes, list = [...clashes.clashes.filter(c => !isOk(c)), ...clashes.clashes.filter(isOk)];
   const note = combos ? ` ${combos} pair${combos > 1 ? 's' : ''} on separate body parts can combine (e.g. jog + arm raise); not shown.` : '';
   if (!list.length) { root.innerHTML = `<p class="small">No clashes: no two poses on the same body part fire together.${note}</p>`; return; }
-  root.innerHTML = `<p class="small">Poses on the same body part that can fire at once.${note}</p>` + list.map(({ a, b, kind, both }) => {
-    const where = Object.entries(both).map(([f, r]) => `<code>${rangeText(f, r)}</code>`).join(', ');
+  root.innerHTML = `<p class="small">Poses on the same body part that can fire at once, worst first. Mark one <b>fine</b> if it's
+    expected or harmless in play: it stays here, dimmed, and stops counting.${note}</p>` + list.map(c => {
+    const { a, b, kind, both } = c, ok = isOk(c);
+    const where = `<ul>${Object.entries(both).map(([f, r]) => `<li>${rangeText(f, r)}</li>`).join('')}</ul>`;
     const text = kind === 'same' ? `${poseLabel(a)} and ${poseLabel(b)} have the same conditions: they always fire together.`
       : kind === 'b-in-a' ? `Every ${poseLabel(b)} also fires ${poseLabel(a)}.`
       : kind === 'a-in-b' ? `Every ${poseLabel(a)} also fires ${poseLabel(b)}.`
-      : `${poseLabel(a)} and ${poseLabel(b)} both fire when ${where}.`;
-    return `<div class="clash"><div class="fig"></div><div>${text}</div></div>`;
+      : `${poseLabel(a)} and ${poseLabel(b)} both fire when:${where}`;
+    return `<div class="clash ${ok ? 'ok' : ''}"><div class="fig"></div><div>${text}</div>
+      <button class="mark" title="${ok ? 'count this clash again' : 'expected or harmless in play: dim it and stop counting it'}">${ok ? 'not fine' : 'fine'}</button></div>`;
   }).join('');
+  // marked in place, so the list doesn't jump under the pointer; the next draw sorts it to the bottom
+  root.querySelectorAll('.clash .mark').forEach((btn, i) => btn.onclick = () => {
+    if (!clashOk) return;   // the saved marks haven't arrived: a mark now would replace them
+    const ok = !isOk(list[i]);
+    setClashOk(list[i], ok);
+    btn.closest('.clash').classList.toggle('ok', ok);
+    btn.textContent = ok ? 'not fine' : 'fine';
+    btn.title = ok ? 'count this clash again' : 'expected or harmless in play: dim it and stop counting it';
+  });
   const figs = root.querySelectorAll('.clash .fig');
   let slice = performance.now();
   for (let i = 0; i < list.length; i++) {

@@ -15,6 +15,7 @@ DEFAULT = {
     "model": "models/pose_landmarker_lite.task",
     "port": 8765,
     "look": look.DEFAULT,
+    "clashes_ok": [],   # pose-name pairs marked fine in the GUI's clash list: shown dimmed, not counted
     "poses": [
         {"name": "jog", "key": "w", "conditions": [{"feature": "step_cadence", "op": ">", "value": 1.0}]},
         {"name": "jump", "key": "space", "conditions": [{"feature": "hip_rise", "op": ">", "value": 0.15}]},
@@ -41,6 +42,17 @@ def first_run() -> dict:
     return DEFAULT
 
 
+def clean_clashes_ok(v) -> list:
+    """clashes_ok as the GUI reads it, [name, name, kind] with the names sorted: anything else (a hand edit, an import
+    from an older build) is dropped, or a bad value would break the page on every frame. A pair without a kind is an
+    overlap, the mildest, so it counts again if the clash is worse."""
+    out = []
+    for p in v if isinstance(v, list) else []:
+        if isinstance(p, list) and len(p) in (2, 3) and all(isinstance(s, str) for s in p):
+            out.append([*sorted(p[:2]), p[2] if len(p) == 3 else "overlap"])
+    return out
+
+
 def load(path: Path = CONFIG) -> dict:
     if not path.exists():
         save(first_run(), path)
@@ -51,6 +63,7 @@ def load(path: Path = CONFIG) -> dict:
     for k, v in DEFAULT.items():   # one level deep, so a camera block that only sets index keeps width and height
         if isinstance(v, dict):
             merged[k] = {**v, **(cfg.get(k) or {})}
+    merged["clashes_ok"] = clean_clashes_ok(merged["clashes_ok"])
     return merged
 
 

@@ -53,6 +53,8 @@ class App:
         send = new.pop("send_keys", None)
         if "look" in new:   # the GUI sends only what it changes (enabled, toggle)
             new["look"] = {**self.cfg["look"], **new["look"]}
+        if "clashes_ok" in new:
+            new["clashes_ok"] = cfgmod.clean_clashes_ok(new["clashes_ok"])
         cfg = {**self.cfg, **new}
         rules = RuleEngine(cfgmod.poses_from(cfg))   # raises on a bad pose before anything changes
         with self.lock:
@@ -137,7 +139,7 @@ class App:
                 self.hub.publish(jpeg.tobytes(), {
                     "t": t, "features": feats, "poses": poses, "state": state, "body": p is not None, "paused": paused, "missing": missing,
                     "held": sorted(held), "blocked": sorted(held - out), "look": look, "send_keys": send, "fps": round(fps, 1), "feature_info": FEATURE_INFO, "key_names": KEY_LIST,
-                    "trusted": self.trusted,
+                    "trusted": self.trusted, "clashes_ok": self.cfg["clashes_ok"],
                 })
         except Exception:
             traceback.print_exc()
