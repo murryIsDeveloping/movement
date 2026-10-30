@@ -2,14 +2,20 @@
 // beep, figure.js's figureSVG and library.js's presetOf at call time.
 // ---------- drill: full-screen random prompts for a set time, scores each pose ----------
 // Learn mode is the same screen taking the poses in order, with no clock: each one stays up, with its figure, notes and
-// a live checklist of its conditions, until it has been hit LEARN_REPS times (or skipped).
+// a live checklist of its conditions, until it's done (or skipped).
+// Each prompt is a hold or a set of reps. Whether a pose is held or repped is the routine's choice, not the pose's: a
+// squat's conditions are its bottom position, so holding them is a held squat and entering them N times is N squats.
+// Only poses that need motion (jump, jog, punch) can't be held.
 let drill = null;
 let sendBefore = null;   // send keys as it was before the drill turned it off; null when no drill
 const DRILL_READY = 3, DRILL_TICK_SHOW = 1;   // seconds
-const LEARN_REPS = 3, LEARN_REST = 1.5;   // hits before moving on; seconds of neutral between them
-// the drill's own settings, set on its setup screen: [default, min, max] for length (minutes), rest and time to hit (seconds)
-const DRILL_SETTINGS = { minutes: [1, 0.5, 60], rest: [3, 0, 30], hit: [10, 2, 60] };
-const DRILL_KEY = 'movement.drill', DRILL_INPUTS = { minutes: 'drillMin', rest: 'drillRest', hit: 'drillHit' };
+const LEARN_REPS = 3, LEARN_HOLD = 5, LEARN_REST = 1.5;   // learn's targets; seconds of neutral between poses
+const HOLD_GRACE = 1;   // seconds a hold may drop out (a wobble, a tracking blip) before it starts over
+// the drill's own settings, set on its setup screen: [default, min, max] for length (minutes), rest, time to hit and
+// hold (seconds), reps, and whether poses that can be held are (1) or repped (0)
+const DRILL_SETTINGS = { minutes: [1, 0.5, 60], rest: [3, 0, 30], hit: [10, 2, 60], hold: [10, 2, 120], reps: [5, 1, 50], holdable: [1, 0, 1] };
+const DRILL_KEY = 'movement.drill';
+const DRILL_INPUTS = { minutes: 'drillMin', rest: 'drillRest', hit: 'drillHit', hold: 'drillHold', reps: 'drillReps', holdable: 'drillHoldable' };
 
 // saved settings, each clamped to its range; a missing or broken one is its default
 function drillSettings(from = null) {
@@ -90,7 +96,21 @@ function coachTick(now, since) {
   }
 }
 
-const drillable = i =>poses[i] && poses[i].enabled !== false && poses[i].conditions.length;
+const drillable = i => poses[i] && poses[i].enabled !== false && poses[i].conditions.length;
+
+// a condition only met while moving (jump, jog, punch), not a stillness band like "hand not moving" (vy < 1.5)
+const needsMotion = c => COACH_MOVES.test(c.feature) && (c.op === '>' ? c.value > 0 : c.value < 0);
+const canHold = i => !poses[i].conditions.some(needsMotion);
+
+// what the prompt asks: hold for `goal` seconds, or `goal` reps
+function drillGoal(i) {
+  const d = drill, hold = canHold(i) && (d.learn || d.cfg.holdable);
+  return hold ? { kind: 'hold', goal: d.learn ? LEARN_HOLD : d.cfg.hold } : { kind: 'reps', goal: d.learn ? LEARN_REPS : d.cfg.reps };
+}
+
+// while prompting: what's asked, and how far along
+const progressText = d => d.kind === 'hold' ? (d.held ? `holding · ${Math.ceil(d.goal - d.held)}s left` : `hold ${d.goal}s`)
+  : `${d.count}/${d.goal} reps`;
 
 // active poses in list order, for learn mode
 const learnPool = () => poses.map((p, i) => i).filter(drillable);
@@ -133,7 +153,7 @@ function startDrill(learn = null) {
   el.querySelector('.cue .fig').innerHTML = '';
   el.querySelector('.cue').style.display = '';
   const now = performance.now();
-  drill = { el, pool, learn: !!learn, step: 0, reps: 0, phase: 'ready', phaseAt: now, clock: null,
+  drill = { el, pool, learn: !!learn, cfg, step: 0, phase: 'ready', phaseAt: now, clock: null,
             rest: learn ? LEARN_REST : cfg.rest, hit: learn ? Infinity : cfg.hit,   // learning has no time limit: skip gives up
             endAt: learn ? Infinity : now + (DRILL_READY + cfg.minutes * 60) * 1000,
             target: -1, figFor: -1, seenOff: false, wasActive: [], results: [],
@@ -191,19 +211,22 @@ function drillPrompt(now) {
     drill.el.querySelector('.cue .fig').innerHTML = figureSVG(poses[drill.target].conditions, false);
     drill.figFor = drill.target;
   }
+  Object.assign(drill, drillGoal(drill.target));
   drill.phase = 'prompt'; drill.phaseAt = now;
   drill.seenOff = false;   // the target must go off then on, so a hold left over from last time doesn't count
+  drill.on = false;        // target on (after seenOff) last tick: a rep is it turning on
+  drill.held = 0; drill.offFor = 0; drill.count = 0; drill.lastRepAt = now;
   drill.wrong = new Set();
   drill.wasActive = state.map(s => !!(s && s.active));
   drill.said = null; drill.saidAt = null;
-  drillEvent('prompt', poses[drill.target].name);
+  drillEvent('prompt', poses[drill.target].name, { kind: drill.kind, goal: drill.goal });
   beep(660, 80);
-  say(poses[drill.target].name);   // eyes can stay off the screen
+  say(`${poses[drill.target].name}, ${drill.kind === 'hold' ? `hold ${drill.goal} seconds` : `${drill.goal} reps`}`);   // eyes can stay off the screen
 }
 
 // learn: on to the next pose, or the results after the last one
 function learnNext(now) {
-  drill.step++; drill.reps = 0;
+  drill.step++;
   if (drill.step >= drill.pool.length) { drill.phase = 'done'; beep(440, 300); renderDrillResults(); }
   else drillPrompt(now);
 }
@@ -213,10 +236,43 @@ function drillSkip() {
   if (!d || !d.learn || d.phase === 'done' || d.phase === 'ready') return;
   const now = performance.now();
   if (d.phase === 'prompt') {
-    d.results.push({ name: poses[d.target].name, hit: false, time: (now - d.phaseAt) / 1000, wrong: [...d.wrong], ret: [] });
+    drillResult(false, (now - d.phaseAt) / 1000);
     drillEvent('skip', poses[d.target].name);
   }
   learnNext(now);
+}
+
+// got: seconds held or reps done when the prompt ended
+function drillResult(hit, time) {
+  const d = drill;
+  d.results.push({ name: poses[d.target].name, hit, time, wrong: [...d.wrong], ret: [],
+                   kind: d.kind, goal: d.goal, got: d.kind === 'hold' ? +d.held.toFixed(1) : d.count });
+}
+
+// the prompted pose this tick: a hold's seconds, or a rep when it turns on. Returns 'hit', 'miss' or ''.
+function drillProgress(now, since, dt) {
+  const d = drill, name = poses[d.target].name, on = !!(state[d.target] && state[d.target].active);
+  if (!on) d.seenOff = true;
+  const counts = d.seenOff && on, was = d.on;
+  d.on = counts;
+  if (d.kind === 'hold') {
+    if (counts) {
+      if (!d.held) { drillEvent('hold_start', name); beep(880, 60); }
+      d.held += dt / 1000; d.offFor = 0;
+    } else if (d.held && (d.offFor += dt / 1000) > HOLD_GRACE) {
+      drillEvent('hold_lost', name, { held: +d.held.toFixed(1) });
+      d.held = 0; beep(330, 120);
+    }
+    // time to hit is for getting into the pose, with the hold's own length on top; a hold underway may finish
+    return d.held >= d.goal ? 'hit' : !d.held && since >= d.hit + d.goal ? 'miss' : '';
+  }
+  if (counts && !was) {
+    d.count++; d.lastRepAt = now;
+    drillEvent('rep', name, { n: d.count });
+    if (d.count < d.goal) { beep(1000, 60); say(String(d.count)); }
+  }
+  // time to hit is per rep
+  return d.count >= d.goal ? 'hit' : (now - d.lastRepAt) / 1000 >= d.hit ? 'miss' : '';
 }
 
 function drillTick() {
@@ -226,7 +282,7 @@ function drillTick() {
   d.lastTick = now;
   if (paused && d.phase !== 'done') {
     // out of frame: the clocks stop, so stepping up to the camera doesn't eat the prompt or the minute
-    d.phaseAt += dt; d.endAt += dt;
+    d.phaseAt += dt; d.endAt += dt; d.lastRepAt += dt;
     el.querySelector('.big').className = 'big bad';
     el.querySelector('.big').textContent = 'Paused';
     el.querySelector('.sub').textContent = paused.length ? `not fully in frame: ${paused.join(', ')}` : 'no body: step into view';
@@ -251,19 +307,17 @@ function drillTick() {
     firing.forEach(n => { if (!last.ret.includes(n)) last.ret.push(n); drillEvent('return_wrong', n, { from: last.name }); });
     // the next prompt waits for neutral: nothing firing, so every pose starts from the same place
     if (since >= d.rest && !state.some(s => s && s.active)) {
-      if (d.learn && d.reps >= LEARN_REPS) learnNext(now); else drillPrompt(now);
+      if (d.learn) learnNext(now); else drillPrompt(now);
     }
   }
   else if (d.phase === 'prompt') {
     firing.forEach(n => { d.wrong.add(n); drillEvent('wrong', n, { prompted: poses[d.target].name }); });
-    if (!active(d.target)) d.seenOff = true;
-    const hit = d.seenOff && active(d.target);
-    if (hit || since >= d.hit) {
-      d.results.push({ name: poses[d.target].name, hit, time: since, wrong: [...d.wrong], ret: [] });
-      drillEvent(hit ? 'hit' : 'miss', poses[d.target].name, { time: +since.toFixed(2) });
-      if (hit) d.reps++;
+    const end = drillProgress(now, since, dt);
+    if (end) {
+      drillResult(end === 'hit', since);
+      drillEvent(end, poses[d.target].name, { time: +since.toFixed(2) });
       d.phase = 'return'; d.phaseAt = now;
-      if (hit) beep(1200, 150); else beep(220, 250);
+      if (end === 'hit') beep(1200, 150); else beep(220, 250);
     }
   }
   if (d.phase === 'done') return;
@@ -274,11 +328,16 @@ function drillTick() {
   if (d.phase === 'ready') { big = Math.ceil(DRILL_READY - since); sub = 'get ready'; }
   else if (d.phase === 'prompt') {
     big = esc(poses[d.target].name);
-    sub = d.learn ? esc((presetOf(poses[d.target].preset) || {}).notes || '') : `${Math.ceil(d.hit - since)}s`;
+    if (d.kind === 'hold' && d.held) cls = 'ok';   // green while holding
+    // drill: time left to get into the pose (or for the next rep); a hold underway has its own countdown
+    const toGo = d.kind === 'hold' ? d.hit + d.goal - since : d.hit - (now - d.lastRepAt) / 1000;
+    sub = d.learn ? esc((presetOf(poses[d.target].preset) || {}).notes || '')
+      : `${progressText(d)}${d.kind === 'hold' && d.held ? '' : ` · ${Math.ceil(toGo)}s`}`;
   }
   else if (since < DRILL_TICK_SHOW) {
-    if (last.hit) { big = '✓'; cls = 'ok'; sub = `${esc(last.name)} in ${last.time.toFixed(1)}s`; }
-    else { big = '✗'; cls = 'bad'; sub = `${esc(last.name)} timed out`; }
+    const goal = last.kind === 'hold' ? `held ${last.goal}s` : `${last.goal} reps`;
+    if (last.hit) { big = '✓'; cls = 'ok'; sub = `${esc(last.name)}: ${goal} in ${last.time.toFixed(1)}s`; }
+    else { big = '✗'; cls = 'bad'; sub = `${esc(last.name)} timed out${last.kind === 'reps' ? ` at ${last.got}/${last.goal} reps` : ''}`; }
     if (last.wrong.length) sub += ` · also fired: ${last.wrong.map(esc).join(', ')}`;
   } else {
     const still = poses.filter((p, i) => active(i)).map(p => esc(p.name));
@@ -289,12 +348,13 @@ function drillTick() {
   el.querySelector('.big').innerHTML = big;
   el.querySelector('.big').className = 'big ' + cls;
   el.querySelector('.sub').innerHTML = sub;
-  coachTick(now, (now - d.phaseAt) / 1000);   // the phase may have changed above, so not `since`
+  // the phase may have changed above, so not `since`. Reps are coached from the last one, so not mid-set.
+  coachTick(now, (now - (d.kind === 'reps' ? d.lastRepAt : d.phaseAt)) / 1000);
   // the figure shows while prompting; learning keeps it up between reps too, as the same pose comes next
   el.querySelector('.cue').style.visibility = d.phase === 'prompt' || (d.learn && d.phase === 'return') ? '' : 'hidden';
   el.querySelector('.checks').innerHTML = d.learn && d.target >= 0 ? learnChecks(d.target) : '';
   el.querySelector('.clock').textContent = d.phase === 'ready' ? ''
-    : d.learn ? `pose ${d.step + 1}/${d.pool.length} · ${d.reps}/${LEARN_REPS}`
+    : d.learn ? `pose ${d.step + 1}/${d.pool.length}${d.phase === 'prompt' ? ' · ' + progressText(d) : ''}`
     : `${left >= 60 ? `${Math.floor(left / 60)}:${String(left % 60).padStart(2, '0')}` : left + 's'} · ${d.results.filter(r => r.hit).length}/${d.results.length}`;
   el.querySelector('.results').innerHTML = '';
 }

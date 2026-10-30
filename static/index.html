@@ -171,7 +171,7 @@
   .drill:not(.learn) .checks, .drill:not(.learn) #drillSkip { display:none; }
   .drill .setup { display:none; flex-direction:column; gap:12px; width:min(320px, 100%); margin-top:10vh; font-size:18px; }
   .drill .setup label { display:flex; align-items:center; gap:8px; }
-  .drill .setup input { width:80px; margin-left:auto; font-size:18px; }
+  .drill .setup input, .drill .setup select { width:80px; margin-left:auto; font-size:18px; }
   .drill .setup .u { width:2em; color:var(--dim); }
   .drill.setup .setup { display:flex; }
   .drill.setup > :not(.drill-head):not(.setup) { display:none; }
@@ -230,10 +230,13 @@
   <div class="drill-head"><span class="clock"></span><span class="pill" id="drillKeys" title="Turned off for the drill, so poses don't type into this page. Set back when the drill ends.">keys off</span><label class="toggle" title="Read out each pose's name and what to fix, so you needn't look at the screen"><input type="checkbox" id="coachVoice" checked>voice</label><button id="drillSkip" title="give up on this pose and go to the next">skip</button><button id="drillClose" title="stop (Esc)">×</button></div>
   <div class="setup">
     <h2>Drill</h2>
-    <p class="small">Random poses from your active ones until the time's up. Long with a short rest makes it a workout.</p>
+    <p class="small">Random poses from your active ones until the time's up, each held or done as reps. Long with a short rest makes it a workout.</p>
     <label>length <input id="drillMin" type="number" min="0.5" max="60" step="0.5"><span class="u">min</span></label>
     <label title="neutral this long (nothing firing) before the next pose">rest <input id="drillRest" type="number" min="0" max="30" step="0.5"><span class="u">s</span></label>
-    <label title="a pose not hit in this long counts as a miss">time to hit <input id="drillHit" type="number" min="2" max="60" step="1"><span class="u">s</span></label>
+    <label title="a pose not hit in this long counts as a miss: to get into a hold, or between reps">time to hit <input id="drillHit" type="number" min="2" max="60" step="1"><span class="u">s</span></label>
+    <label title="poses you can stay in (chair, arm out, squat): hold them, or do them as reps (a squat each time you sink into it). Poses that need motion (jump, jog, punch) are always reps.">positions <select id="drillHoldable"><option value="1">hold</option><option value="0">reps</option></select></label>
+    <label title="seconds to hold a position">hold <input id="drillHold" type="number" min="2" max="120" step="1"><span class="u">s</span></label>
+    <label title="reps per prompt for movements">reps <input id="drillReps" type="number" min="1" max="50" step="1"><span class="u"></span></label>
     <button class="primary" id="drillStart">start</button>
   </div>
   <div class="big"></div>
