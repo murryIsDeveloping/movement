@@ -100,7 +100,7 @@ function learnGroup(g) {
 // A preset's active pose card, from the library: close the panel, scroll to the card and flash it
 function showPose(name) {
   const i = poses.findIndex(p => p.preset === name), div = document.querySelector(`#poses .pose[data-i="${i}"]`);
-  if (!div) return;
+  if (!div) { renderLibrary(); return; }   // deleted while the panel was open: its row goes back to "use"
   libPanel.classList.remove('open');
   div.scrollIntoView({ behavior: 'smooth', block: 'center' });
   div.classList.remove('flash'); void div.offsetWidth; div.classList.add('flash');   // reflow restarts the animation
