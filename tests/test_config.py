@@ -45,6 +45,12 @@ def test_load_merges_nested_defaults(tmp_path):
     assert cfg["poses"] == config.DEFAULT["poses"]
 
 
+def test_load_drops_saved_send_keys(tmp_path):
+    path = tmp_path / "config.yaml"
+    path.write_text(yaml.safe_dump({"send_keys": True, "poses": []}))   # saved by an older build
+    assert "send_keys" not in config.load(path) and "send_keys" not in config.DEFAULT
+
+
 def put_config(body: str):
     async def go():
         hub, got = Hub(), []
@@ -59,6 +65,11 @@ def test_import_accepts_valid_poses():
     status, j, got = put_config(yaml.safe_dump({"poses": config.DEFAULT["poses"]}))
     assert status == 200 and j == {"ok": True, "poses": len(config.DEFAULT["poses"])}
     assert got[0]["poses"] == config.DEFAULT["poses"]
+
+
+def test_import_never_turns_keys_on():
+    status, j, got = put_config(yaml.safe_dump({"send_keys": True, "poses": config.DEFAULT["poses"]}))
+    assert status == 200 and "send_keys" not in got[0]
 
 
 def test_import_rejects_unknown_feature():

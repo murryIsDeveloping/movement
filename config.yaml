@@ -4,7 +4,6 @@ camera:
   height: 480
 model: models/pose_landmarker_lite.task
 port: 8765
-send_keys: false
 poses:
 - name: jog
   key: w

@@ -42,15 +42,20 @@ class App:
         self.hub.get_config = lambda: dict(self.cfg)
         self.hub.on_quit = self.quit
         self.running = True
+        self.send_keys = False   # session only: never saved, so a relaunch never sends keys into whatever has focus
         self.trusted = True   # macOS Accessibility: checked in run(), then rechecked by trust_loop
 
     def set_config(self, new: dict):
+        new = dict(new)
+        send = new.pop("send_keys", None)
         cfg = {**self.cfg, **new}
         rules = RuleEngine(cfgmod.poses_from(cfg))   # raises on a bad pose before anything changes
         with self.lock:
             self.cfg, self.rules = cfg, rules
             cfgmod.save(self.cfg)
-            if not self.cfg.get("send_keys"):
+            if send is not None:
+                self.send_keys = bool(send)
+            if not self.send_keys:
                 self.keys.release_all()
 
     def quit(self):
@@ -91,7 +96,7 @@ class App:
                     state = self.rules.update(feats, t)
                     held = self.rules.keys()
                     poses = [pz.to_dict() for pz in self.rules.poses]
-                    send = bool(self.cfg.get("send_keys"))
+                    send = self.send_keys
                 self.keys.apply(held if send else set())
 
                 fps_n += 1

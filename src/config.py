@@ -14,7 +14,6 @@ DEFAULT = {
     "camera": {"index": 0, "width": 640, "height": 480},
     "model": "models/pose_landmarker_lite.task",
     "port": 8765,
-    "send_keys": False,
     "poses": [
         {"name": "jog", "key": "w", "conditions": [{"feature": "step_cadence", "op": ">", "value": 1.0}]},
         {"name": "jump", "key": "space", "conditions": [{"feature": "hip_rise", "op": ">", "value": 0.15}]},
@@ -46,6 +45,7 @@ def load(path: Path = CONFIG) -> dict:
         save(first_run(), path)
     with open(path) as f:
         cfg = yaml.safe_load(f) or {}
+    cfg.pop("send_keys", None)   # session only (older builds saved it): dropped here so the next save drops it too
     merged = {**DEFAULT, **cfg}
     for k, v in DEFAULT.items():   # one level deep, so a camera block that only sets index keeps width and height
         if isinstance(v, dict):

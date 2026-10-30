@@ -15,6 +15,6 @@ Each file covers the problem, where it is in the code, how to reproduce it, the 
 | 07 | [First run starts from untuned defaults](07-first-run-defaults.md) | small | done |
 | 08 | [Pose cards are dense and jargon is unexplained](08-pose-card-density.md) | medium | done |
 | 09 | [The drill doesn't show send-keys state](09-drill-send-state.md) | small | done |
-| 10 | [Send keys stays on after a restart](10-send-keys-persists.md) | small | open |
+| 10 | [Send keys stays on after a restart](10-send-keys-persists.md) | small | done |
 
 Suggested order: do 01 and 05 together, since both touch the key field. Then 02 and 03, which are about trusting what reaches the game. Then the rest.

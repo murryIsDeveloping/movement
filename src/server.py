@@ -85,6 +85,7 @@ async def config_put(request):
             Pose.from_dict(p)
     except Exception as e:
         return web.json_response({"ok": False, "error": str(e)}, status=400)
+    data.pop("send_keys", None)   # an old export may have it: importing poses must never turn keys on
     hub.on_config(data)
     return web.json_response({"ok": True, "poses": len(data["poses"])})
 
