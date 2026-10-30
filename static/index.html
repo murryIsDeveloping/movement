@@ -66,6 +66,8 @@
   .pose { background:var(--panel); border:1px solid var(--line); border-left:6px solid var(--off); border-radius:8px; padding:10px 12px; margin-bottom:10px; transition:border-left-color .15s; }
   .pose.active { border-left-color:var(--on); }
   .pose.disabled { opacity:.5; }
+  .pose.flash { animation:flash 1.2s ease-out; }
+  @keyframes flash { from { box-shadow:0 0 0 3px var(--accent); } to { box-shadow:0 0 0 3px transparent; } }
   .pose-head { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
   .pose-head input.name { flex:1; min-width:120px; font-weight:600; }
   input, select { background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; }

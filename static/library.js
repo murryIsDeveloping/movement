@@ -97,6 +97,15 @@ function learnGroup(g) {
   startDrill(pool());
 }
 
+// A preset's active pose card, from the library: close the panel, scroll to the card and flash it
+function showPose(name) {
+  const i = poses.findIndex(p => p.preset === name), div = document.querySelector(`#poses .pose[data-i="${i}"]`);
+  if (!div) return;
+  libPanel.classList.remove('open');
+  div.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  div.classList.remove('flash'); void div.offsetWidth; div.classList.add('flash');   // reflow restarts the animation
+}
+
 function newPreset() {
   const name = uniqueName('new preset', lib.presets.map(p => p.name));
   const pr = { name, status: 'untested', notes: '', builtin: false, key: '1', conditions: [{ feature: 'right_arm_raise', op: '>', value: 90 }],
@@ -318,7 +327,9 @@ function renderLibrary() {
         <div class="chips">${member.map(g => `<span class="chip">${esc(g.name)}${editable(g) ? `<button data-g="${esc(g.name)}" title="remove from group">×</button>` : ''}</span>`).join('')}
           ${others.length ? `<select class="tog"><option value="">+ group…</option>${others.map(g => `<option>${esc(g.name)}</option>`).join('')}</select>` : ''}</div>
         <div class="bar">
-          <button class="use soft">use</button>${inUse.has(pr.name) ? '<span class="small">in active poses</span>' : ''}
+          ${inUse.has(pr.name) ? `<button class="show soft" title="Already in the active poses: go to its card to tune it">show</button>
+            <button class="use" title="Add another copy to the active poses, e.g. to bind it to a second key">use again</button>`
+          : '<button class="use soft">use</button>'}
           <button class="cl">clone</button>${!pr.builtin ? '<button class="danger del">delete</button>' : ''}
           <span class="small">${pr.conditions.length} condition${pr.conditions.length === 1 ? '' : 's'}${pr.delay ? `, delay ${pr.delay}s` : ''}${pr.hold ? `, hold ${pr.hold}s` : ''}</span>
         </div>
@@ -328,6 +339,7 @@ function renderLibrary() {
     const tog = el.querySelector('.tog');
     if (tog) tog.onchange = e => { lib.groups.find(g => g.name === e.target.value).presets.push(pr.name); saveLibrary(); };
     el.querySelector('.use').onclick = () => usePresets([pr.name], false);
+    if (inUse.has(pr.name)) el.querySelector('.show').onclick = () => showPose(pr.name);
     el.querySelector('.cl').onclick = () => clonePreset(pr);
     ps.appendChild(el);
     if (!pr.builtin) el.querySelector('.del').onclick = () => deletePreset(pr);

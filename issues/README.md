@@ -34,7 +34,7 @@ UX issues from a `/ui-designer` review on 2026-10-30.
 | 09 | [The drill doesn't show send-keys state](ui/09-drill-send-state.md) | small | done |
 | 10 | [Send keys stays on after a restart](ui/10-send-keys-persists.md) | small | done |
 | 11 | [The clash list is long and written in feature code](ui/11-clash-list-unreadable.md) | medium | open |
-| 12 | ["use" on a preset already in the active poses adds a second copy](ui/12-use-adds-duplicate.md) | small | open |
+| 12 | ["use" on a preset already in the active poses adds a second copy](ui/12-use-adds-duplicate.md) | small | done |
 | 13 | [Drill setup shows hold and reps whatever "positions" is set to](ui/13-drill-setup-irrelevant-fields.md) | small | open |
 | 14 | [The tick box on each preset card has no label](ui/14-preset-tick-unlabelled.md) | small | open |
 
