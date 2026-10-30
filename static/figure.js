@@ -1,4 +1,4 @@
-// Loaded before the main script in index.html. Uses its globals (poses, info, live, state, rangeOf, esc) at call time.
+// Loaded before the main script in index.html. Uses its globals (poses, info, live, state, rangeOf, fmtU, esc) at call time.
 // ---------- preview figure: a stick figure posed so every condition holds ----------
 // Built in image coords like the camera overlay (mirrored, y down, torso = 1), so it matches the preview.
 // Static features are measured off the figure with the same formulas as src/features.py; motion and
@@ -57,38 +57,82 @@ function figFeatures(q, P) {
   return f;
 }
 
-function figCost(q, conds) {
-  const f = figFeatures(q, figBody(q));
+// How far the figure misses the conditions (each aimed a margin past its threshold), in fractions of each feature's range.
+function figMiss(f, conds) {
   let cost = 0;
   for (const c of conds) {
     const v = f[c.feature]; if (v === undefined) continue;
     const [lo, hi] = rangeOf(c.feature), m = FIG_MARGIN[(info[c.feature] || {}).unit] ?? 0.08;
     cost += Math.max(0, c.op === '>' ? c.value + m - v : v - (c.value - m)) / (hi - lo);
   }
+  return cost;
+}
+
+// misses, plus a little pull towards the resting pose so unconstrained parts stay relaxed
+function figCost(q, conds) {
+  let cost = figMiss(figFeatures(q, figBody(q)), conds);
   for (const [k, [lo, hi]] of Object.entries(FIG_BOUNDS)) cost += 0.02 * ((q[k] - FIG_REST[k]) / (hi - lo)) ** 2;
   return cost;
 }
 
-// Pattern search from the resting pose, once per elbow-bend direction; keep the cheapest.
+// Pattern search over the given parameters: nudge each up and down, halve the steps when nothing helps.
+function figSearch(q, keys, cost) {
+  const step = Object.fromEntries(keys.map(k => [k, (FIG_BOUNDS[k][1] - FIG_BOUNDS[k][0]) / 4]));
+  let cur = cost(q);
+  for (let halvings = 0; halvings < 9;) {
+    let improved = false;
+    for (const k of keys) for (const d of [1, -1]) {
+      const old = q[k], [lo, hi] = FIG_BOUNDS[k];
+      q[k] = Math.max(lo, Math.min(hi, old + d * step[k]));
+      const c = cost(q);
+      if (c < cur - 1e-9) { cur = c; improved = true; } else q[k] = old;
+    }
+    if (!improved) { for (const k in step) step[k] /= 2; halvings++; }
+  }
+  return cur;
+}
+
+// From the resting pose, once per elbow-bend direction; keep the cheapest.
 function solveFigure(conds) {
   let best = null, bestCost = Infinity;
   for (const bendL of [1, -1]) for (const bendR of [1, -1]) {
-    const q = { ...FIG_REST, bendL, bendR }, step = {};
-    for (const [k, [lo, hi]] of Object.entries(FIG_BOUNDS)) step[k] = (hi - lo) / 4;
-    let cur = figCost(q, conds);
-    for (let halvings = 0; halvings < 9;) {
-      let improved = false;
-      for (const [k, [lo, hi]] of Object.entries(FIG_BOUNDS)) for (const d of [1, -1]) {
-        const old = q[k];
-        q[k] = Math.max(lo, Math.min(hi, old + d * step[k]));
-        const c = figCost(q, conds);
-        if (c < cur - 1e-9) { cur = c; improved = true; } else q[k] = old;
-      }
-      if (!improved) { for (const k in step) step[k] /= 2; halvings++; }
-    }
+    const q = { ...FIG_REST, bendL, bendR };
+    const cur = figSearch(q, Object.keys(FIG_BOUNDS), q => figCost(q, conds));
     if (cur < bestCost) { bestCost = cur; best = q; }
   }
   return best;
+}
+
+// ---------- sweep: move the highlighted parts through the whole range the conditions allow ----------
+// For each conditioned feature, push the figure to its lowest then highest value that still meets every
+// condition, moving only the highlighted parts, and tween base -> low -> high -> base.
+const FIG_KEYS = { armL: ['raiseL', 'angleL'], armR: ['raiseR', 'angleR'], torso: ['lean', 'drop'], head: ['tilt'],
+                   legL: ['kneeL', 'drop'], legR: ['kneeR', 'drop'] };
+const FIG_STILL = ['step_cadence', 'hip_rise'];   // already animated by the jog and the hop
+const FIG_TWEEN = 8, FIG_HOLD = 4, FIG_FRAME = 0.1;   // frames per move, frames paused at each end, seconds per frame
+
+function figPush(q0, conds, feature, sign, keys) {
+  const [lo, hi] = rangeOf(feature), q = { ...q0 };
+  // no pull to rest here, and misses weigh far more than the push, so it stops at the threshold (plus margin)
+  figSearch(q, keys, q => { const f = figFeatures(q, figBody(q)); return 20 * figMiss(f, conds) - sign * f[feature] / (hi - lo); });
+  return figUnmet(conds, q).length ? q0 : q;
+}
+
+function figSweep(q, conds) {
+  const keys = [...new Set(conds.flatMap(c => figParts(c.feature)).flatMap(p => FIG_KEYS[p] || []))];
+  const lerp = (a, b, t) => ({ ...a, ...Object.fromEntries(Object.keys(FIG_BOUNDS).map(k => [k, a[k] + (b[k] - a[k]) * t])) });
+  const tween = (a, b) => Array.from({ length: FIG_TWEEN }, (_, i) => lerp(a, b, (i + 1) / FIG_TWEEN));
+  const frames = [q], sweeps = [];
+  if (!keys.length) return { frames, sweeps };
+  for (const f of new Set(conds.map(c => c.feature))) {
+    if (FIG_STILL.includes(f) || figFeatures(q, figBody(q))[f] === undefined) continue;
+    const qlo = figPush(q, conds, f, -1, keys), qhi = figPush(q, conds, f, 1, keys);
+    const vlo = figFeatures(qlo, figBody(qlo))[f], vhi = figFeatures(qhi, figBody(qhi))[f], [lo, hi] = rangeOf(f);
+    if (vhi - vlo < 0.02 * (hi - lo)) continue;   // pinned: nothing worth showing
+    sweeps.push({ feature: f, lo: vlo, hi: vhi });
+    frames.push(...tween(q, qlo), ...Array(FIG_HOLD).fill(qlo), ...tween(qlo, qhi), ...Array(FIG_HOLD).fill(qhi), ...tween(qhi, q));
+  }
+  return { frames, sweeps };
 }
 
 function figUnmet(conds, q) {
@@ -99,31 +143,46 @@ function figUnmet(conds, q) {
 function figureSVG(conds, caption = true) {
   if (!conds.length || !Object.keys(info).length) return '';
   const q = solveFigure(conds), unmet = figUnmet(conds, q);
+  const { frames, sweeps } = unmet.length ? { frames: [q], sweeps: [] } : figSweep(q, conds);
+  const dur = (frames.length * FIG_FRAME).toFixed(1);
+  const joints = q => { const P = figBody(q); return { ...P, sc: { x: (P.sL.x + P.sR.x) / 2, y: P.sL.y }, hc: { x: 0, y: P.hL.y } }; };
+  const Ps = frames.map(joints);
   const hl = new Set(conds.flatMap(c => figParts(c.feature)));
-  const ln = (a, b, part) => `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" class="${hl.has(part) ? 'hl' : ''}"/>`;
-  const legs = P => ln(P.hL, P.kL, 'legL') + ln(P.kL, P.aL, 'legL') + ln(P.hR, P.kR, 'legR') + ln(P.kR, P.aR, 'legR')
-    + [P.kL, P.aL, P.kR, P.aR].map(j => `<circle cx="${j.x}" cy="${j.y}" r=".05"/>`).join('');
-  const P = figBody(q);
-  const sc = { x: (P.sL.x + P.sR.x) / 2, y: P.sL.y }, hc = { x: 0, y: P.hL.y };
-  const upper = ln(P.sL, P.sR, 'torso') + ln(P.hL, P.hR, 'torso') + ln(sc, hc, 'torso')
-    + ln(P.sL, P.eL, 'armL') + ln(P.eL, P.wL, 'armL') + ln(P.sR, P.eR, 'armR') + ln(P.eR, P.wR, 'armR')
-    + [P.sL, P.sR, P.eL, P.eR, P.wL, P.wR, P.hL, P.hR].map(j => `<circle cx="${j.x}" cy="${j.y}" r=".05"/>`).join('')
-    + `<circle class="head ${hl.has('head') ? 'hl' : ''}" cx="${P.nose.x}" cy="${P.nose.y - 0.05}" r=".17"/>`;
-  let lower = legs(P);
+  const cls = part => hl.has(part) ? 'hl' : '';
+  // one value per frame; a constant one stays a plain attribute
+  const anim = (attr, vs) => vs.every(v => Math.abs(v - vs[0]) < 1e-4) ? ''
+    : `<animate attributeName="${attr}" values="${vs.map(v => v.toFixed(3)).join(';')}" dur="${dur}s" repeatCount="indefinite"/>`;
+  const line = (A, B, c) => `<line x1="${A[0].x}" y1="${A[0].y}" x2="${B[0].x}" y2="${B[0].y}" class="${c}">`
+    + anim('x1', A.map(p => p.x)) + anim('y1', A.map(p => p.y)) + anim('x2', B.map(p => p.x)) + anim('y2', B.map(p => p.y)) + '</line>';
+  const dot = (A, extra, dy = 0) => `<circle cx="${A[0].x}" cy="${A[0].y + dy}" ${extra}>`
+    + anim('cx', A.map(p => p.x)) + anim('cy', A.map(p => p.y + dy)) + '</circle>';
+  const ln = (Qs, a, b, part) => line(Qs.map(P => P[a]), Qs.map(P => P[b]), cls(part));
+  const dots = (Qs, ks) => ks.map(k => dot(Qs.map(P => P[k]), 'r=".05"')).join('');
+  const legs = Qs => ln(Qs, 'hL', 'kL', 'legL') + ln(Qs, 'kL', 'aL', 'legL') + ln(Qs, 'hR', 'kR', 'legR') + ln(Qs, 'kR', 'aR', 'legR')
+    + dots(Qs, ['kL', 'aL', 'kR', 'aR']);
+  const upper = ln(Ps, 'sL', 'sR', 'torso') + ln(Ps, 'hL', 'hR', 'torso') + ln(Ps, 'sc', 'hc', 'torso')
+    + ln(Ps, 'sL', 'eL', 'armL') + ln(Ps, 'eL', 'wL', 'armL') + ln(Ps, 'sR', 'eR', 'armR') + ln(Ps, 'eR', 'wR', 'armR')
+    + dots(Ps, ['sL', 'sR', 'eL', 'eR', 'wL', 'wR', 'hL', 'hR'])
+    + dot(Ps.map(P => P.nose), `r=".17" class="head ${cls('head')}"`, -0.05);
+  let lower = legs(Ps);
   if (q.cadence > 0.2) {   // jog: alternate a lifted knee at the required step rate
-    const dur = `--dur:${(2 / q.cadence).toFixed(2)}s`;
-    lower = `<g class="jogA" style="${dur}">${legs(figBody({ ...q, kneeL: Math.max(q.kneeL, 0.35) }))}</g>`
-          + `<g class="jogB" style="${dur}">${legs(figBody({ ...q, kneeR: Math.max(q.kneeR, 0.35) }))}</g>`;
+    const step = `--dur:${(2 / q.cadence).toFixed(2)}s`;
+    lower = `<g class="jogA" style="${step}">${legs(frames.map(f => joints({ ...f, kneeL: Math.max(f.kneeL, 0.35) })))}</g>`
+          + `<g class="jogB" style="${step}">${legs(frames.map(f => joints({ ...f, kneeR: Math.max(f.kneeR, 0.35) })))}</g>`;
   }
-  let body = upper + lower + motionArrows(conds, P);
+  let arrows = Ps.map(P => motionArrows(conds, P));
+  if (arrows.some(a => a.length !== arrows[0].length)) arrows = arrows.map(() => arrows[0]);   // keep the line count fixed
+  let body = upper + lower + arrows[0].map((_, i) => line(arrows.map(a => a[i][0]), arrows.map(a => a[i][1]), 'mv')).join('');
   if (q.rise > 0.05) body = `<g class="hop" style="--h:${-q.rise}px">${body}</g>`;
   const svg = `<svg viewBox="-1.4 -2 2.8 4.2"><line class="ground" x1="-1.3" y1="2.05" x2="1.3" y2="2.05"/>${body}</svg>`;
   if (!caption) return svg;
+  const range = sweeps.length ? `<div class="small">moves through ${sweeps.map(s =>
+    `${s.feature.replace(/_/g, ' ')} ${fmtU(s.feature, s.lo)}–${fmtU(s.feature, s.hi)}`).join(', ')}</div>` : '';
   const tip = unmet.length ? `<div class="unmet">can't all hold at once: ${unmet.map(c => `${c.feature} ${c.op} ${c.value}`).join(', ')}</div>` : '';
-  return `${svg}<div class="small">as seen in preview</div>${tip}`;
+  return `${svg}<div class="small">as seen in preview</div>${range}${tip}`;
 }
 
-// Speed conditions (swipe, punch, clap) aren't positions: draw them as an arrow from the wrist.
+// Speed conditions (swipe, punch, clap) aren't positions: draw them as an arrow from the wrist. Returns [from, to] segments.
 function motionArrows(conds, P) {
   const dir = { L: [0, 0], R: [0, 0] };
   const unit = (a, b) => { const n = Math.hypot(b.x - a.x, b.y - a.y) || 1; return [(b.x - a.x) / n, (b.y - a.y) / n]; };
@@ -142,12 +201,12 @@ function motionArrows(conds, P) {
       add('L', unit(P.wL, P.wR)); add('R', unit(P.wR, P.wL));
     }
   }
-  let out = '';
+  const out = [];
   for (const [s, [dx, dy]] of Object.entries(dir)) {
     const n = Math.hypot(dx, dy); if (!n) continue;
     const w = P['w' + s], ux = dx / n, uy = dy / n, e = { x: w.x + ux * 0.55, y: w.y + uy * 0.55 };
     const head = a => ({ x: e.x - 0.18 * (ux * Math.cos(a) - uy * Math.sin(a)), y: e.y - 0.18 * (ux * Math.sin(a) + uy * Math.cos(a)) });
-    out += [[w, e], [e, head(0.5)], [e, head(-0.5)]].map(([a, b]) => `<line class="mv" x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}"/>`).join('');
+    out.push([w, e], [e, head(0.5)], [e, head(-0.5)]);
   }
   return out;
 }
