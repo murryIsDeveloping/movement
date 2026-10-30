@@ -53,6 +53,8 @@ class App:
         send = new.pop("send_keys", None)
         if "look" in new:   # the GUI sends only what it changes (enabled, toggle)
             new["look"] = {**self.cfg["look"], **new["look"]}
+        if "clashes_ok" in new:
+            new["clashes_ok"] = cfgmod.clean_clashes_ok(new["clashes_ok"])
         cfg = {**self.cfg, **new}
         rules = RuleEngine(cfgmod.poses_from(cfg))   # raises on a bad pose before anything changes
         with self.lock:

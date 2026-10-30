@@ -49,8 +49,14 @@ def test_load_adds_clashes_ok_to_older_configs(tmp_path):
     path = tmp_path / "config.yaml"
     path.write_text(yaml.safe_dump({"poses": []}))
     assert config.load(path)["clashes_ok"] == []
-    path.write_text(yaml.safe_dump({"poses": [], "clashes_ok": [["jump", "star jump"]]}))
-    assert config.load(path)["clashes_ok"] == [["jump", "star jump"]]
+    path.write_text(yaml.safe_dump({"poses": [], "clashes_ok": [["star jump", "jump", "same"]]}))
+    assert config.load(path)["clashes_ok"] == [["jump", "star jump", "same"]]
+
+
+def test_clean_clashes_ok_drops_bad_entries():
+    assert config.clean_clashes_ok(5) == config.clean_clashes_ok(None) == []
+    assert config.clean_clashes_ok([1, "ab", ["a"], ["a", 2], ["b", "a"], ["a", "b", "b-in-a"]]) == [
+        ["a", "b", "overlap"], ["a", "b", "b-in-a"]]
 
 
 def test_load_drops_saved_send_keys(tmp_path):
