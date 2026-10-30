@@ -1,6 +1,5 @@
 presets:
 - name: jog
-  status: tested
   notes: Jog on the spot, body upright.
   key: w
   conditions:
@@ -18,7 +17,6 @@ presets:
   hold: 0.3
   delay: 0.0
 - name: jump
-  status: tested
   notes: Jump straight up.
   key: space
   conditions:
@@ -30,7 +28,6 @@ presets:
   hold: 0.3
   delay: 0.0
 - name: right
-  status: tested
   notes: Right arm straight out to the side at shoulder height, left arm down, body
     upright. Hold still.
   key: d
@@ -67,7 +64,6 @@ presets:
     name: left
     key: a
 - name: stride right
-  status: tested
   notes: Jog on the spot leaning to your right.
   key: e
   conditions:
@@ -85,7 +81,6 @@ presets:
     name: stride left
     key: q
 - name: pick up
-  status: tested
   notes: Squat with both arms hanging straight down.
   key: l
   conditions:
@@ -103,7 +98,6 @@ presets:
   hold: 0.25
   delay: 0.0
 - name: shoot
-  status: tested
   notes: 'Bow draw: left arm out, right hand pulled back to the face. Disabled in
     the current setup.'
   key: '1'
@@ -131,7 +125,6 @@ presets:
   hold: 0.4
   delay: 0.0
 - name: hold sword
-  status: tested
   notes: Both upper arms out at shoulder height, elbows sharply bent, hands up by
     the head.
   key: '1'
@@ -156,7 +149,6 @@ presets:
   hold: 0.4
   delay: 0.0
 - name: right up
-  status: tested
   notes: Right arm straight up overhead, left arm down.
   key: '2'
   conditions:
@@ -177,7 +169,6 @@ presets:
     name: left up
     key: '3'
 - name: squat hands up
-  status: tested
   notes: Squat with both hands overhead.
   key: '0'
   conditions:
@@ -195,7 +186,6 @@ presets:
   hold: 0.4
   delay: 0.0
 - name: squat hands out
-  status: tested
   notes: Squat with both arms straight out to the sides.
   key: '-'
   conditions:
@@ -225,7 +215,6 @@ presets:
   hold: 0.4
   delay: 0.0
 - name: right knee up
-  status: tested
   notes: Lift the right knee high, left foot planted.
   key: '4'
   conditions:
@@ -243,7 +232,6 @@ presets:
     name: left knee up
     key: '5'
 - name: left punch
-  status: tested
   notes: Fast left punch across or to the side (straight at the camera barely registers).
   key: '9'
   conditions:
@@ -270,7 +258,6 @@ presets:
     name: right punch
     key: n
 - name: both arms up
-  status: untested
   notes: Both arms straight up overhead, hands apart (a Y or touchdown). Standing.
   key: '6'
   conditions:
@@ -297,7 +284,6 @@ presets:
   hold: 0.4
   delay: 0.2
 - name: steeple
-  status: untested
   notes: Both hands together overhead, palms touching. Standing.
   key: c
   conditions:
@@ -318,7 +304,6 @@ presets:
   hold: 0.4
   delay: 0.2
 - name: t-pose
-  status: untested
   notes: Both arms straight out to the sides at shoulder height. Standing.
   key: '7'
   conditions:
@@ -348,7 +333,6 @@ presets:
   hold: 0.4
   delay: 0.3
 - name: right arm diagonal up
-  status: untested
   notes: Right arm straight, pointing up and out at 45 degrees. Left arm down.
   key: f
   conditions:
@@ -375,7 +359,6 @@ presets:
     name: left arm diagonal up
     key: g
 - name: right arm diagonal down
-  status: untested
   notes: Right arm straight, pointing down and out at 45 degrees. Left arm down. Hold
     still.
   key: h
@@ -403,7 +386,6 @@ presets:
     name: left arm diagonal down
     key: j
 - name: double biceps
-  status: untested
   notes: 'Flex both arms: upper arms out at shoulder height, forearms up, fists well
     apart.'
   key: k
@@ -446,7 +428,6 @@ presets:
   hold: 0.4
   delay: 0.3
 - name: hands on head
-  status: untested
   notes: Both hands on top of your head, elbows out to the sides.
   key: f8
   conditions:
@@ -482,7 +463,6 @@ presets:
   hold: 0.4
   delay: 0.3
 - name: hands on hips
-  status: tested
   notes: Both hands on your hips, elbows out.
   key: f9
   conditions:
@@ -521,7 +501,6 @@ presets:
   hold: 0.4
   delay: 0.3
 - name: salute
-  status: tested
   notes: Right hand flat at your brow, elbow out. Left arm down.
   key: x
   conditions:
@@ -548,7 +527,6 @@ presets:
   hold: 0.4
   delay: 0.3
 - name: cross arms
-  status: tested
   notes: Forearms crossed in an X in front of your chest, each hand reaching past the other shoulder.
   key: z
   conditions:
@@ -578,7 +556,6 @@ presets:
   hold: 0.4
   delay: 0.3
 - name: prayer hands
-  status: untested
   notes: Palms together in front of your chest, held still.
   key: '='
   conditions:
@@ -608,7 +585,6 @@ presets:
   hold: 0.4
   delay: 0.3
 - name: clap
-  status: untested
   notes: One sharp clap in front of you.
   key: '8'
   conditions:
@@ -623,7 +599,6 @@ presets:
   hold: 0.3
   delay: 0.0
 - name: right hand swipe out
-  status: untested
   notes: Sweep the right hand fast out to your right at chest height.
   key: f6
   conditions:
@@ -644,7 +619,6 @@ presets:
     name: left hand swipe out
     key: f7
 - name: right uppercut
-  status: untested
   notes: 'Fast right uppercut: fist drives upward, elbow bent.'
   key: y
   conditions:
@@ -668,7 +642,6 @@ presets:
     name: left uppercut
     key: u
 - name: star jump
-  status: untested
   notes: Jump with both hands going overhead (jumping jack). Also fires jump.
   key: p
   conditions:
@@ -686,7 +659,6 @@ presets:
   hold: 0.3
   delay: 0.0
 - name: right knee to left elbow
-  status: untested
   notes: 'Cross crunch: lift the right knee and bring the left elbow down across to
     it. Clashes with right knee up.'
   key: i
@@ -711,7 +683,6 @@ presets:
     name: left knee to right elbow
     key: o
 - name: side bend left
-  status: untested
   notes: Feet still, bend sideways at the waist to your left.
   key: f11
   conditions:
@@ -732,7 +703,6 @@ presets:
     name: side bend right
     key: f12
 - name: head tilt left
-  status: untested
   notes: Body upright, tilt your head toward your left shoulder.
   key: r
   conditions:
@@ -753,7 +723,6 @@ presets:
     name: head tilt right
     key: t
 - name: toe touch
-  status: tested
   notes: 'Legs straight, bend forward and slide your hands down to your knees or shins.
     Don''t fold all the way: your hands then hide your knees from the camera and tracking
     pauses.'
@@ -776,7 +745,6 @@ presets:
   hold: 0.4
   delay: 0.3
 - name: chair
-  status: untested
   notes: 'Yoga chair (utkatasana): feet together, sit back as if into a chair, both
     arms reaching up overhead, chest lifted. Clashes with squat hands up when you
     sit deep.'
@@ -808,7 +776,6 @@ presets:
   hold: 0.4
   delay: 0.5
 - name: tree right
-  status: untested
   notes: 'Yoga tree (vrksasana): stand on your left leg, right foot on the inside
     of your left calf or thigh (not the knee), right knee out to the side, palms together
     at your chest. Keep your feet in view: the knees are read down to the ankle.'
@@ -855,7 +822,6 @@ presets:
     name: tree left
     key: v
 - name: warrior 2 right
-  status: untested
   notes: 'Yoga warrior II (virabhadrasana II), chest facing the camera: feet wide,
     right foot turned out to your right, bend the right knee over the ankle, left
     leg straight, arms straight out at shoulder height, torso upright over the hips.
@@ -906,7 +872,6 @@ presets:
     name: warrior 2 left
     key: f5
 - name: goddess
-  status: untested
   notes: 'Yoga goddess (utkata konasana): feet wide and turned out, bend both knees
     into a wide squat, upper arms out at shoulder height with elbows bent and hands
     up (cactus arms), torso upright. Keep your feet in view.'
@@ -968,7 +933,6 @@ presets:
   hold: 0.4
   delay: 0.5
 - name: crescent left
-  status: untested
   notes: 'Yoga standing crescent: feet together, arms overhead with palms together,
     bend sideways at the waist to your left. Both hips stay level.'
   key: f3
@@ -996,7 +960,7 @@ presets:
     name: crescent right
     key: f4
 groups:
-- name: wow hunter
+- name: mmo hunter
   notes: 'Movement on W/A/D/Q/E and space. Shots and pet abilities on action bar 1-8:
     put your main shot on 1 and your rotation after it.'
   presets:
@@ -1024,9 +988,10 @@ groups:
     squat hands out: '6'
     right knee up: '7'
     left knee up: '8'
-- name: wow mage
+- name: mmo mage
   notes: 'Movement on W/A/D/Q/E and space. Spells on action bar 1-8: punches for your
-    filler casts, both arms up for a big AoE, t-pose for Frost Nova, clap to interrupt.'
+    filler casts, both arms up for a big AoE, t-pose for your freeze, clap to
+    interrupt.'
   presets:
   - jog
   - jump
@@ -1052,10 +1017,10 @@ groups:
     t-pose: '6'
     clap: '7'
     squat hands up: '8'
-- name: mario
-  notes: 'Side-scrolling platformer on a keyboard-mapped emulator: arrows for the
-    D-pad, x = A (jump), z = B (run, fireball). Arm out to walk that way, jog to run,
-    punch for a fireball, squat to crouch or go down a pipe, right arm up for up.'
+- name: platformer
+  notes: 'Side-scrolling platformer on the keyboard: arrows to move, x to jump, z to
+    run or attack. Arm out to walk that way, jog to run, punch to attack, squat to
+    crouch, right arm up for up.'
   presets:
   - right
   - left

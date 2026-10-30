@@ -27,7 +27,7 @@ DEFAULT = {
 }
 
 
-FIRST_RUN_GROUP = "wow hunter"   # built-in group a new install starts from: all its presets are tested
+FIRST_RUN_GROUP = "mmo hunter"   # built-in group a new install starts from
 
 
 def first_run() -> dict:

@@ -159,14 +159,14 @@
   .side.wide { width:min(600px, 100vw); }
   .badge.looktag { color:var(--accent); border-color:var(--accent); cursor:default; }
   input.key.struck { text-decoration:line-through; color:var(--dim); }
-  .badge { font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid var(--line); color:var(--dim); cursor:pointer; user-select:none; }
-  .badge.tested { color:var(--on); border-color:var(--on); }
-  .badge.untested, .badge.changed { color:var(--warn); border-color:var(--warn); }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid var(--line); color:var(--dim); cursor:default; user-select:none; }
+  .badge.custom { color:var(--accent); border-color:var(--accent); }
+  .badge.changed { color:var(--warn); border-color:var(--warn); }
   .badge.changed { border-style:dashed; }
   .group, .preset { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px 12px; margin-bottom:8px; }
   .group .name, .preset .name { flex:1; min-width:120px; font-weight:600; }
-  .preset { display:grid; grid-template-columns: 70px 1fr; gap:12px; align-items:start; border-left:6px solid var(--on); }
-  .preset.untested { border-left-color:var(--warn); }
+  .preset { display:grid; grid-template-columns: 70px 1fr; gap:12px; align-items:start; border-left:6px solid var(--off); }
+  .preset.custom { border-left-color:var(--accent); }
   .preset .fig svg { margin:0; }
   .preset textarea { width:100%; margin-top:6px; background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; resize:vertical; }
   .preset .bar { margin-top:6px; }
@@ -174,11 +174,22 @@
   .tag { font-size:11px; padding:1px 6px; border-radius:4px; background:var(--field); color:var(--dim); border:1px solid var(--line); }
   .preset p.notes { margin:6px 0 0; }
   .chip { display:inline-flex; align-items:center; gap:4px; font-size:12px; padding:2px 4px 2px 10px; border-radius:999px; border:1px solid var(--line); }
-  .chip.untested { border-color:var(--warn); color:var(--warn); }
   .chip button { padding:0 6px; border:none; background:none; color:var(--dim); }
   .chip input.gk { width:52px; padding:0 4px; margin-left:4px; text-align:center; font-family:ui-monospace, Menlo, monospace; font-size:12px; }
   .group textarea { width:100%; margin-top:6px; background:var(--field); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:4px 8px; font:inherit; font-size:12px; resize:vertical; }
   .group p.small { margin:6px 0 0; }
+  .addwrap { position:relative; }
+  .picker { position:absolute; right:0; top:calc(100% + 6px); z-index:15; width:min(400px, 90vw); background:var(--panel); border:1px solid var(--line);
+            border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.5); padding:8px; }
+  .picker[hidden] { display:none; }
+  .picker .pq { width:100%; margin-bottom:6px; }
+  .plist { max-height:60vh; overflow-y:auto; display:flex; flex-direction:column; gap:2px; }
+  .prow { display:grid; grid-template-columns:40px minmax(0, 1fr) auto; gap:10px; align-items:center; text-align:left; background:none; border-color:transparent; padding:4px 6px; }
+  .prow:hover, .prow:focus-visible { background:var(--field); border-color:var(--line); }
+  .prow .fig svg { width:40px; margin:0; }
+  .prow .pname { display:block; }
+  .prow .pname .small { display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .prow code { color:var(--dim); font-size:12px; margin-left:4px; }
   .acts { display:flex; gap:6px; flex-wrap:wrap; margin-left:auto; }   /* a card's buttons wrap as one row, not one stray button */
   .loading { position:fixed; inset:0; z-index:30; background:var(--bg); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; }
   .loading[hidden] { display:none; }
@@ -249,14 +260,16 @@
     </details>
   </div>
   <div class="right">
-    <div class="bar" style="margin-top:0">
+    <div class="bar" style="margin-top:0; gap:8px">
       <h2 style="margin:0">Poses</h2>
-      <select id="groupPick" style="margin-right:auto" title="The group the active poses are. Pick another to switch to it (asks first if your poses have changed from the group as it loads)"></select>
+      <select id="groupPick" title="The group the active poses are. Pick another to switch to it (asks first if your poses have changed from the group as it loads)"></select>
+      <button id="groupsBtn" style="margin-right:auto" title="Make, edit and learn groups: a setup of poses and keys for a game or class">groups</button>
       <button id="learnBtn" title="Learn the poses: goes through each active pose in order, showing how to do it, until you've hit it a few times">learn</button>
       <button id="drillBtn" title="Test yourself: prompts random poses for as long as you set, and scores them. Long with a short rest makes it a workout.">drill</button>
-      <button id="libBtn" title="Preset poses (tested and untested) and groups of them to load">library</button>
+      <button id="libBtn" title="Every pose you can add, built-in and custom: make new ones here">library</button>
       <button id="clashBtn" title="Poses on the same body part that can fire together">clashes</button>
-      <button class="primary" id="add">+ new pose</button>
+      <span class="addwrap"><button class="primary" id="add" title="Add a copy of a library pose to your poses, to tune here">+ add pose</button>
+        <div class="picker" id="picker" hidden><input class="pq" placeholder="search the library"><div class="plist"></div></div></span>
       <a href="/config" download="movement-config.yaml"><button>export</button></a>
       <button id="import">import</button>
       <input type="file" id="file" accept=".yaml,.yml" style="display:none">
@@ -273,6 +286,10 @@
 <aside class="side" id="clashPanel">
   <div class="side-head"><h2>Clashes</h2><button id="clashClose" title="close (Esc)">×</button></div>
   <div id="clashes"></div>
+</aside>
+<aside class="side wide" id="groupPanel">
+  <div class="side-head"><h2>Groups</h2><button id="groupClose" title="close (Esc)">×</button></div>
+  <div id="groups"></div>
 </aside>
 <aside class="side wide" id="libPanel">
   <div class="side-head"><h2>Library</h2><button id="libClose" title="close (Esc)">×</button></div>
@@ -530,17 +547,17 @@ document.getElementById('file').onchange = async e => {
   if (!j.ok) { alert('import failed: ' + j.error); return; }
   dirty = false; e.target.value = '';
 };
-const clashPanel = document.getElementById('clashPanel');
-document.getElementById('clashBtn').onclick = () => { libPanel.classList.remove('open'); clashPanel.classList.toggle('open'); drawClashList(); };
+const clashPanel = document.getElementById('clashPanel'), libPanel = document.getElementById('libPanel'), groupPanel = document.getElementById('groupPanel');
+const PANELS = [clashPanel, libPanel, groupPanel];
+// one side panel at a time; true if p is now open
+function togglePanel(p) { PANELS.forEach(x => { if (x !== p) x.classList.remove('open'); }); return p.classList.toggle('open'); }
+document.getElementById('clashBtn').onclick = () => { togglePanel(clashPanel); drawClashList(); };
+document.getElementById('libBtn').onclick = () => { if (togglePanel(libPanel)) stopPicking(); renderLibrary(); };   // a fresh open: no tick boxes
+document.getElementById('groupsBtn').onclick = () => { togglePanel(groupPanel); renderLibrary(); };
 document.getElementById('clashClose').onclick = () => clashPanel.classList.remove('open');
-const libPanel = document.getElementById('libPanel');
-document.getElementById('libBtn').onclick = () => {
-  clashPanel.classList.remove('open');
-  if (libPanel.classList.toggle('open')) stopPicking();   // a fresh open starts with no tick boxes
-  renderLibrary();
-};
 document.getElementById('libClose').onclick = () => libPanel.classList.remove('open');
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { clashPanel.classList.remove('open'); libPanel.classList.remove('open'); endDrill(); } });
+document.getElementById('groupClose').onclick = () => groupPanel.classList.remove('open');
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { PANELS.forEach(x => x.classList.remove('open')); openPicker(false); endDrill(); } });
 document.getElementById('drillBtn').onclick = () => openDrillSetup();
 document.getElementById('drillStart').onclick = () => startDrill();
 document.querySelector('#drill .setup').onkeydown = e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') startDrill(); };   // a button's Enter clicks it
@@ -550,10 +567,6 @@ document.getElementById('drillSkip').onclick = () => drillSkip();
 document.getElementById('drillClose').onclick = () => endDrill();
 document.getElementById('reset').onclick =() => send({ type: 'reset_baselines' });
 document.getElementById('quit').onclick = () => { send({ type: 'quit' }); document.body.innerHTML = '<h1 style="padding:2rem">Movement stopped. Close this tab.</h1>'; };
-document.getElementById('add').onclick = () => {
-  poses.push({ name: `pose ${poses.length + 1}`, key: '1', conditions: [{ feature: 'right_arm_raise', op: '>', value: 90 }], margin: 0.1, enabled: true, hold: 0, delay: 0 });
-  renderPoses(); scheduleSave();
-};
 
 function fmt(v) { return v === undefined ? '–' : (Math.abs(v) >= 10 ? v.toFixed(0) : v.toFixed(2)); }
 const symOf = f => (info[f] || {}).sym || '';   // from UNIT_SYMBOLS in src/features.py
@@ -580,7 +593,7 @@ function renderPoses() {
         <button class="down" title="move down" ${pi === poses.length - 1 ? 'disabled' : ''}>↓</button>
         <button class="addc">+ condition</button>
         <button class="cap" title="Record the movement and pick conditions from a frame">capture</button>
-        <button class="tolib" title="Save this pose's conditions, key and timings to its library preset (or as a new untested preset)">→ library</button>
+        <button class="tolib" title="Save this pose's conditions, key and timings to its library preset (or as a new custom pose)">→ library</button>
         <button class="danger del">delete</button>
       </div>
       <div class="pose-body"><div class="conds"></div><div class="fig"></div></div>

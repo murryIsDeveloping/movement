@@ -1,6 +1,6 @@
-"""Preset library: named poses with a tested/untested status, and groups of them to load as the active poses.
+"""Preset library: named poses with notes on how to do them, and groups of them to load as the active poses.
 
-A group is a setup for one game or class (WoW hunter, Mario...): its presets plus its own key for each, overriding
+A group is a setup for one game or class (MMO hunter, platformer...): its presets plus its own key for each, overriding
 the preset's default key, since the same jump is space in one game and z in another.
 
 Built-in presets and groups ship with the app in presets.yaml and are read-only, so they can't be broken: users
@@ -22,8 +22,7 @@ from src.rules import Pose
 
 BUILTIN = paths.resource_root() / "presets.yaml"
 USER = paths.config_path().parent / "my_presets.yaml"
-STATUSES = ("tested", "untested")
-MIRRORED = ("status", "notes", "conditions", "margin", "enabled", "hold", "delay")   # shared by both sides of a pair
+MIRRORED = ("notes", "conditions", "margin", "enabled", "hold", "delay")   # shared by both sides of a pair
 SIDEWAYS = re.compile(r"^(lean|head_tilt|(left|right)_wrist_vx)$")   # + is image right, so mirroring flips the sign
 _SIDE = re.compile(r"(?<![A-Za-z])(left|right|Left|Right)(?![A-Za-z])")
 
@@ -171,8 +170,9 @@ def group_poses(group: str, builtin: Path | None = None) -> list[dict]:
 
 
 def validate(lib: dict) -> dict:
-    """Normalised copy, or ValueError: a bad pose, a duplicate name, an unknown status, a group naming a missing
-    preset or binding a key pynput can't press, or a built-in group naming a user preset (built-ins must stand alone)."""
+    """Normalised copy, or ValueError: a bad pose, a duplicate name, a group naming a missing preset or binding a key
+    pynput can't press, or a built-in group naming a user preset (built-ins must stand alone). A status (tested or
+    untested, which older builds kept) is dropped, so the next save drops it from the file too."""
     presets, builtins = [], {}
     for d in lib.get("presets") or []:
         pose = Pose.from_dict(d).to_dict()
@@ -180,12 +180,9 @@ def validate(lib: dict) -> dict:
         name = pose.pop("name")
         if name in builtins:
             raise ValueError(f"two presets named {name!r}")
-        status = d.get("status", "untested")
-        if status not in STATUSES:
-            raise ValueError(f"preset {name!r}: status must be one of {STATUSES}, got {status!r}")
         builtins[name] = bool(d.get("builtin", False))
         mirror = {"mirror_of": str(d["mirror_of"])} if d.get("mirror_of") else {}
-        presets.append({"name": name, "status": status, "notes": str(d.get("notes", "")), **pose, **mirror, "builtin": builtins[name]})
+        presets.append({"name": name, "notes": str(d.get("notes", "")), **pose, **mirror, "builtin": builtins[name]})
     groups, gnames = [], set()
     for g in lib.get("groups") or []:
         if g["name"] in gnames:

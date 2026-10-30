@@ -18,14 +18,14 @@ def preset(name, **kw):
 @pytest.fixture
 def files(tmp_path):
     b, u = tmp_path / "presets.yaml", tmp_path / "my_presets.yaml"
-    b.write_text(yaml.safe_dump({"presets": [preset("arm", status="tested")], "groups": [{"name": "g", "presets": ["arm"]}]}))
+    b.write_text(yaml.safe_dump({"presets": [preset("arm", notes="up")], "groups": [{"name": "g", "presets": ["arm"]}]}))
     return b, u
 
 
 def test_shipped_presets_are_valid():
     lib = library.load(library.BUILTIN, library.BUILTIN.parent / "no-such-file.yaml")
     assert len(lib["presets"]) >= 40 and all(p["builtin"] for p in lib["presets"])
-    assert sum(p["status"] == "untested" for p in lib["presets"]) >= 20
+    assert not any("status" in p for p in lib["presets"])
     for p in lib["presets"]:
         Pose.from_dict(p)
 
@@ -40,8 +40,17 @@ def test_load_flags_builtins(files):
 
 def test_validate_fills_defaults_and_drops_pose_link():
     p = library.validate({"presets": [preset("arm", preset="old")]})["presets"][0]
-    assert p["status"] == "untested" and p["notes"] == "" and p["hold"] == 0.0 and p["builtin"] is False
+    assert p["notes"] == "" and p["hold"] == 0.0 and p["builtin"] is False
     assert "preset" not in p
+
+
+def test_old_status_is_dropped(files):
+    b, u = files
+    u.write_text(yaml.safe_dump({"presets": [preset("mine", status="untested")]}))
+    lib = library.load(b, u)
+    assert "status" not in lib["presets"][1]
+    library.save(lib, edit_builtins=False, builtin=b, user=u)
+    assert "status" not in yaml.safe_load(u.read_text())["presets"][0]
 
 
 def test_group_poses_maps_like_pose_from_preset(tmp_path):
@@ -59,14 +68,14 @@ def test_group_poses_maps_like_pose_from_preset(tmp_path):
 def test_user_cannot_change_builtins(files):
     b, u = files
     lib = library.load(b, u)
-    lib["presets"][0]["status"] = "untested"
+    lib["presets"][0]["notes"] = "changed"
     lib["presets"][0]["conditions"] = []
     lib["presets"].append(preset("mine"))
     lib["groups"].pop(0)   # deleting a built-in group
     saved = library.save(lib, edit_builtins=False, builtin=b, user=u)
-    assert saved["presets"][0]["status"] == "tested" and saved["presets"][0]["conditions"]
+    assert saved["presets"][0]["notes"] == "up" and saved["presets"][0]["conditions"]
     assert [g["name"] for g in saved["groups"]] == ["g"]
-    assert yaml.safe_load(b.read_text())["presets"][0]["status"] == "tested"
+    assert yaml.safe_load(b.read_text())["presets"][0]["notes"] == "up"
     assert [p["name"] for p in yaml.safe_load(u.read_text())["presets"]] == ["mine"]
 
 
@@ -81,10 +90,10 @@ def test_user_preset_cannot_take_builtin_name(files):
 def test_running_from_source_edits_builtins(files):
     b, u = files
     lib = library.load(b, u)
-    lib["presets"][0]["status"] = "untested"
+    lib["presets"][0]["notes"] = "changed"
     library.save(lib, edit_builtins=True, builtin=b, user=u)
     stored = yaml.safe_load(b.read_text())
-    assert stored["presets"][0]["status"] == "untested" and "builtin" not in stored["presets"][0]
+    assert stored["presets"][0]["notes"] == "changed" and "builtin" not in stored["presets"][0]
 
 
 def test_running_from_source_keeps_builtin_presets(files):
@@ -110,7 +119,6 @@ def test_load_survives_builtins_changing_under_user_file(files):
 
 @pytest.mark.parametrize("lib, error", [
     ({"presets": [preset("a"), preset("a")]}, "two presets"),
-    ({"presets": [preset("a", status="maybe")]}, "status"),
     ({"presets": [{"name": "a", "key": "e", "conditions": [{"feature": "nope", "op": ">", "value": 1}]}]}, "unknown feature"),
     ({"presets": [preset("a")], "groups": [{"name": "g", "presets": ["b"]}]}, "no preset named"),
     ({"presets": [], "groups": [{"name": "g"}, {"name": "g"}]}, "two groups"),
@@ -143,7 +151,7 @@ def test_routes_save_user_half_only(files, monkeypatch):
 
 def test_group_keys_override_per_member():
     lib = library.validate({"presets": [preset("a"), preset("b")],
-                            "groups": [{"name": "mario", "presets": ["a"], "keys": {"a": "right", "b": "x", "c": "z"}}]})
+                            "groups": [{"name": "platformer", "presets": ["a"], "keys": {"a": "right", "b": "x", "c": "z"}}]})
     g = lib["groups"][0]
     assert g["keys"] == {"a": "right"}   # keys for presets outside the group are dropped
     assert g["notes"] == ""
@@ -152,8 +160,8 @@ def test_group_keys_override_per_member():
 def test_shipped_game_groups_bind_their_own_keys():
     lib = library.load(library.BUILTIN, library.BUILTIN.parent / "no-such-file.yaml")
     groups = {g["name"]: g for g in lib["groups"]}
-    assert groups["mario"]["keys"]["jump"] == "x"
-    assert groups["wow hunter"]["keys"]["right punch"] != groups["mario"]["keys"]["right punch"]
+    assert groups["platformer"]["keys"]["jump"] == "x"
+    assert groups["mmo hunter"]["keys"]["right punch"] != groups["platformer"]["keys"]["right punch"]
 
 
 def test_renamed_user_preset_keeps_its_group_key(files):
@@ -184,7 +192,7 @@ def test_validate_rejects_bad_group_key():
         library.validate({"presets": [preset("arm")], "groups": [{"name": "g", "presets": ["arm"], "keys": {"arm": "spac"}}]})
 
 
-STRIDE = {"name": "stride right", "key": "e", "notes": "Jog leaning to your right.", "status": "tested",
+STRIDE = {"name": "stride right", "key": "e", "notes": "Jog leaning to your right.",
           "conditions": [{"feature": "step_cadence", "op": ">", "value": 0.4}, {"feature": "lean", "op": ">", "value": 0.25},
                          {"feature": "right_wrist_vx", "op": "<", "value": -1.0}],
           "mirror": {"name": "stride left", "key": "q"}}
@@ -201,7 +209,7 @@ def test_mirror_generates_the_other_side(mirrored):
     lib = library.load(*mirrored)
     right, left = lib["presets"]
     assert "mirror" not in right and left["mirror_of"] == "stride right"
-    assert (left["name"], left["key"], left["notes"], left["status"]) == ("stride left", "q", "Jog leaning to your left.", "tested")
+    assert (left["name"], left["key"], left["notes"]) == ("stride left", "q", "Jog leaning to your left.")
     assert left["conditions"] == [{"feature": "step_cadence", "op": ">", "value": 0.4}, {"feature": "lean", "op": "<", "value": -0.25},
                                   {"feature": "left_wrist_vx", "op": ">", "value": 1.0}]
 

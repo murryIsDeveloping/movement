@@ -1,6 +1,7 @@
-// Loaded before the main script in index.html. Uses its globals (poses, info, esc, renderPoses, scheduleSave, libPanel),
+// Loaded before the main script in index.html. Uses its globals (poses, info, esc, renderPoses, scheduleSave, libPanel,
+// groupPanel),
 // figure.js's figureSVG and drill.js's startDrill at call time.
-// ---------- preset library: tested/untested presets, and groups of them to load as the active poses ----------
+// ---------- preset library: built-in and custom presets, and groups of them to load as the active poses ----------
 // The library is edited here and sent whole to the server (PUT /library), which validates and saves it.
 // Built-in presets and groups (builtin: true) ship with the app and are read-only: use, clone, or put them in your
 // own groups, even running from source: they're tuned by editing presets.yaml directly.
@@ -9,7 +10,7 @@
 // Keys are bindings, not tuning: they aren't compared or saved back to the preset from a pose card.
 let lib = { presets: [], groups: [] };
 const editable = x => !x.builtin;
-const libView = { status: 'all', group: '', search: '' };
+const libView = { kind: 'all', group: '', search: '' };
 const picked = new Set();   // preset names ticked in the panel, for "+ group from ticked"
 let picking = false;        // the tick boxes are shown: "select to group" is on
 const stopPicking = () => { picked.clear(); picking = false; };
@@ -21,6 +22,7 @@ const presetOf = name => name ? lib.presets.find(p => p.name === name) : undefin
 // both: the server mirrors the change across.
 const otherSide = pr => pr.mirror_of ? presetOf(pr.mirror_of) : lib.presets.find(p => p.mirror_of === pr.name);
 const presetFigure = conds => figureSVG(conds, false);   // cached there: the panel redraws on every filter keystroke
+const kindOf = x => x.builtin ? 'built-in' : 'custom';   // shipped with the app (locked), or made by the user
 
 function uniqueName(base, taken) {
   if (!taken.includes(base)) return base;
@@ -62,7 +64,7 @@ function usePresets(names, replace, keys = {}) {
   }
   poses.push(...add);
   scheduleSave();
-  withLoading(() => { renderPoses(); renderLibrary(); });
+  return withLoading(() => { renderPoses(); renderLibrary(); });
 }
 
 // The group the active poses are, exactly as it loads (same presets, in order, its keys, nothing tuned), or undefined.
@@ -95,22 +97,57 @@ function learnGroup(g) {
   const pool = () => g.presets.map(find);
   if (pool().includes(-1)) usePresets(g.presets, true, g.keys);
   if (pool().includes(-1)) return;   // load declined
-  libPanel.classList.remove('open');
+  groupPanel.classList.remove('open');
   startDrill(pool());
+}
+
+function flashCard(div) {
+  if (!div) return;
+  div.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  div.classList.remove('flash'); void div.offsetWidth; div.classList.add('flash');   // reflow restarts the animation
 }
 
 // A preset's active pose card, from the library: close the panel, scroll to the card and flash it
 function showPose(name) {
   const i = poses.findIndex(p => p.preset === name), div = document.querySelector(`#poses .pose[data-i="${i}"]`);
-  if (!div) { renderLibrary(); return; }   // deleted while the panel was open: its row goes back to "use"
+  if (!div) { renderLibrary(); return; }   // deleted while the panel was open: its "show" goes
   libPanel.classList.remove('open');
-  div.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  div.classList.remove('flash'); void div.offsetWidth; div.classList.add('flash');   // reflow restarts the animation
+  flashCard(div);
 }
 
+// ---------- add pose: a copy of a library pose into the active poses, from the main page ----------
+const addBtn = document.getElementById('add'), picker = document.getElementById('picker'), pickQ = picker.querySelector('.pq');
+function openPicker(open) {
+  picker.hidden = !open;
+  if (open) { pickQ.value = ''; renderPicker(); pickQ.focus(); }
+}
+function renderPicker() {
+  const q = pickQ.value.toLowerCase(), inUse = new Set(poses.map(p => p.preset));
+  const shown = lib.presets.filter(p => !q || (p.name + ' ' + p.notes).toLowerCase().includes(q)), list = picker.querySelector('.plist');
+  list.innerHTML = shown.map((pr, i) => `<button class="prow" data-i="${i}"><span class="fig">${presetFigure(pr.conditions)}</span>
+      <span class="pname"><b>${esc(pr.name)}</b><code>${esc(pr.key)}</code>${inUse.has(pr.name) ? ' <span class="tag">in your poses</span>' : ''}
+        <span class="small">${esc(pr.notes)}</span></span>
+      <span class="tag">${kindOf(pr)}</span></button>`).join('')
+    || `<p class="small">${lib.presets.length ? 'No poses match.' : 'The library is empty: make a pose there with + new pose.'}</p>`;
+  list.querySelectorAll('.prow').forEach(b => b.onclick = () => addFromLibrary(shown[b.dataset.i].name));
+}
+// the copy goes last, so that's the card to show once it's drawn
+function addFromLibrary(name) {
+  const i = poses.length;
+  openPicker(false);
+  usePresets([name], false).then(() => flashCard(document.querySelector(`#poses .pose[data-i="${i}"]`)));
+}
+addBtn.onclick = () => openPicker(picker.hidden);
+pickQ.oninput = renderPicker;
+pickQ.onkeydown = e => {
+  if (e.key === 'Enter') picker.querySelector('.prow')?.click();   // the first match
+  if (e.key === 'Escape') { e.stopPropagation(); openPicker(false); addBtn.focus(); }
+};
+document.addEventListener('mousedown', e => { if (!picker.hidden && !e.target.closest('.addwrap')) openPicker(false); });
+
 function newPreset() {
-  const name = uniqueName('new preset', lib.presets.map(p => p.name));
-  const pr = { name, status: 'untested', notes: '', builtin: false, key: '1', conditions: [{ feature: 'right_arm_raise', op: '>', value: 90 }],
+  const name = uniqueName('new pose', lib.presets.map(p => p.name));
+  const pr = { name, notes: '', builtin: false, key: '1', conditions: [{ feature: 'right_arm_raise', op: '>', value: 90 }],
                margin: 0.1, enabled: true, hold: 0, delay: 0 };
   lib.presets.push(pr);
   saveLibrary(); usePresets([name], false);   // straight into the active poses: conditions get tuned live
@@ -121,7 +158,7 @@ function clonePreset(pr) {
   const other = otherSide(pr), pair = !other ? [pr] : pr.mirror_of ? [other, pr] : [pr, other];
   const clones = [];
   for (const p of pair)
-    clones.push({ ...copy(p), name: uniqueName(`${p.name} copy`, [...lib.presets, ...clones].map(x => x.name)), status: 'untested', builtin: false });
+    clones.push({ ...copy(p), name: uniqueName(`${p.name} copy`, [...lib.presets, ...clones].map(x => x.name)), builtin: false });
   if (clones[1]) clones[1].mirror_of = clones[0].name;
   lib.presets.splice(Math.max(...pair.map(p => lib.presets.indexOf(p))) + 1, 0, ...clones);
   saveLibrary();
@@ -150,13 +187,13 @@ function deletePreset(pr) {
 }
 
 // An active pose's conditions and timings into its preset. A pose with no preset, or tuned from a locked built-in,
-// becomes a new untested preset of yours (keeping the built-in's notes, and the pose's key as its default key).
+// becomes a new custom preset (keeping the built-in's notes, and the pose's key as its default key).
 function savePoseToLibrary(p) {
   let pr = presetOf(p.preset);
   if (pr && editable(pr)) Object.assign(pr, poseFields(p));
   else {
     const name = uniqueName(pr ? `${pr.name} tuned` : p.name, lib.presets.map(x => x.name));
-    pr = { name, status: 'untested', notes: pr ? pr.notes : '', builtin: false, key: p.key, ...poseFields(p) };
+    pr = { name, notes: pr ? pr.notes : '', builtin: false, key: p.key, ...poseFields(p) };
     lib.presets.push(pr);
     p.preset = pr.name; scheduleSave();
   }
@@ -194,16 +231,16 @@ function renameGroup(g, name) {
   g.name = name; saveLibrary();
 }
 
-// ---------- active pose cards: library status badge and save-back button ----------
-// tested / untested / changed (tuned since last saved to its preset) / not in library
+// ---------- active pose cards: library badge and save-back button ----------
+// built-in / custom, changed (tuned since last saved to its preset), or not in library
 function presetBadge(p) {
   const pr = presetOf(p.preset);
-  if (!pr) return { cls: 'none', text: 'not in library', tip: '→ library saves it as a new untested preset' };
+  if (!pr) return { cls: 'none', text: 'not in library', tip: '→ library saves it as a new custom pose' };
   if (JSON.stringify(poseFields(p)) !== JSON.stringify(poseFields(pr)))
-    return { cls: 'changed', text: `${pr.status}, changed`, tip: editable(pr) ? `differs from preset "${pr.name}": → library saves the changes into it`
-                                                                             : `differs from built-in "${pr.name}": → library saves it as your own preset` };
-  if (!editable(pr)) return { cls: pr.status, text: `${pr.status}, built-in`, tip: `built-in preset "${pr.name}": tune it and → library saves your own copy` };
-  return { cls: pr.status, text: pr.status, tip: `preset "${pr.name}": click to mark ${pr.status === 'tested' ? 'untested' : 'tested'}` };
+    return { cls: 'changed', text: `${kindOf(pr)}, changed`, tip: editable(pr) ? `differs from "${pr.name}" in the library: → library saves the changes into it`
+                                                                                : `differs from built-in "${pr.name}": → library saves it as a custom pose` };
+  if (!editable(pr)) return { cls: 'builtin', text: 'built-in', tip: `built-in pose "${pr.name}": tune it and → library saves a custom copy` };
+  return { cls: 'custom', text: 'custom', tip: `your pose "${pr.name}" in the library` };
 }
 
 function updatePresetBadges() {
@@ -216,80 +253,39 @@ function updatePresetBadges() {
 }
 
 function wirePresetControls(div, p) {
-  div.querySelector('.badge').onclick = () => {
-    const pr = presetOf(p.preset);
-    if (!pr || !editable(pr) || presetBadge(p).cls === 'changed') return;
-    pr.status = pr.status === 'tested' ? 'untested' : 'tested'; saveLibrary();
-  };
   div.querySelector('.tolib').onclick = () => savePoseToLibrary(p);
 }
 
-// ---------- panel ----------
-function renderLibrary() {
-  const root = document.getElementById('library');
-  if (!root || !document.getElementById('libPanel').classList.contains('open')) return;
-  const counts = { tested: 0, untested: 0 };
-  lib.presets.forEach(p => counts[p.status]++);
-  const inUse = new Set(poses.map(p => p.preset));
-  const grp = lib.groups.find(g => g.name === libView.group);
-  const q = libView.search.toLowerCase();
-  const VIEWS = { all: () => true, tested: p => p.status === 'tested', untested: p => p.status === 'untested', 'built-in': p => p.builtin, mine: p => !p.builtin };
-  const shown = lib.presets.filter(p => VIEWS[libView.status](p)
-    && (!grp || grp.presets.includes(p.name)) && (!q || (p.name + ' ' + p.notes).toLowerCase().includes(q)));
+// ---------- panels: the library's poses, and groups of them ----------
+function renderLibrary() { renderPresets(); renderGroups(); }
 
-  for (const n of picked) if (!presetOf(n)) picked.delete(n);   // renamed or deleted since it was ticked
-  const hiddenTicks = [...picked].filter(n => !shown.some(p => p.name === n)).length;   // still grouped: say so
-
+function renderGroups() {
+  const root = document.getElementById('groups');
+  if (!root || !groupPanel.classList.contains('open')) return;
   root.innerHTML = `
-    <h2>Groups</h2>
-    <p class="small">A group is a setup for a game or class: its poses and the key each one presses there (blank = the preset's own key).
-      <b>load</b> replaces the active poses with the group; <b>add</b> appends it. Built-ins are locked: <b>clone</b> one to make your own.</p>
-    <div class="groups"></div>
-    <div class="bar"><button class="ng">+ empty group</button><button class="na" title="A group of the presets behind the active poses, with the keys they're bound to now">+ group from active poses</button></div>
-    <h2>Presets <span class="small">${counts.tested} tested, ${counts.untested} untested</span></h2>
-    <div class="bar">
-      <select class="fs">${['all', 'tested', 'untested', 'built-in', 'mine'].map(s => `<option ${s === libView.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
-      <select class="fg"><option value="">any group</option>${lib.groups.map(g => `<option ${g.name === libView.group ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select>
-      <input class="fq" placeholder="search" value="${esc(libView.search)}">
-      <button class="pk" title="Tick presets to make a new group of them">select to group</button>
-      <button class="primary np" title="New untested preset, also added to the active poses for tuning">+ new preset</button>
-    </div>
-    ${picking ? `<div class="bar"><span class="small">${picked.size} ticked${hiddenTicks ? `, ${hiddenTicks} hidden by the filter` : ''}</span>
-      <button class="primary gp" ${picked.size ? '' : 'disabled'}>+ group from ticked</button><button class="pc">cancel</button></div>` : ''}
-    <p class="small"><b>use</b> adds a preset to the active poses. Tune it there with the live values, then <b>→ library</b> on the pose saves it back.</p>
-    <div class="presets"></div>`;
+    <p class="small">A group is a setup for a game or class: its poses and the key each one presses there (blank = the pose's own key).
+      <b>load</b> replaces your poses with the group; <b>add</b> appends it. Built-ins are locked: <b>clone</b> one to make your own.</p>
+    <div class="bar"><button class="ng">+ empty group</button><button class="na" title="A group of the library poses behind your poses, with the keys they're bound to now">+ group from your poses</button></div>
+    <div class="groups"></div>`;
   root.querySelector('.ng').onclick = () => addGroup('new group', []);
   root.querySelector('.na').onclick = groupFromActive;
-  root.querySelector('.pk').onclick = () => { picking = true; renderLibrary(); };
-  root.querySelector('.pk').hidden = picking;
-  if (picking) {
-    root.querySelector('.gp').onclick = () => { const names = lib.presets.map(p => p.name).filter(n => picked.has(n)); stopPicking(); addGroup('new group', names); };
-    root.querySelector('.pc').onclick = () => { stopPicking(); renderLibrary(); };
-  }
-  root.querySelector('.np').onclick = newPreset;
-  root.querySelector('.fs').onchange = e => { libView.status = e.target.value; renderLibrary(); };
-  root.querySelector('.fg').onchange = e => { libView.group = e.target.value; renderLibrary(); };
-  const fq = root.querySelector('.fq');
-  fq.oninput = e => { libView.search = e.target.value; renderLibrary(); const f = document.querySelector('#library .fq'); f.focus(); f.setSelectionRange(f.value.length, f.value.length); };
-
   const gs = root.querySelector('.groups');
   for (const g of lib.groups) {
     const el = document.createElement('div');
     el.className = 'group';
-    const untested = g.presets.filter(n => presetOf(n).status === 'untested').length;
     const ed = editable(g);
     el.innerHTML = `
       <div class="pose-head">
         ${ed ? `<input class="name" value="${esc(g.name)}" title="group name">` : `<b class="name">${esc(g.name)}</b>`}
-        ${g.builtin ? '<span class="tag">built-in</span>' : ''}
-        <span class="small">${g.presets.length} poses${untested ? `, ${untested} untested` : ''}</span>
+        <span class="tag">${kindOf(g)}</span>
+        <span class="small">${g.presets.length} poses</span>
         <span class="acts"><button class="load soft">load</button><button class="add">add</button><button class="learn" title="Go through each pose in this group one by one, learning it (loads the group first if it isn't active)">learn</button><button class="cl">clone</button>${ed ? '<button class="danger del">delete</button>' : ''}</span>
       </div>
       ${ed ? `<textarea class="notes" rows="1" placeholder="notes: game, class, what each key does">${esc(g.notes)}</textarea>` : g.notes ? `<p class="small">${esc(g.notes)}</p>` : ''}
       <div class="chips">${g.presets.map(n => {
         const k = g.keys[n] || '', def = presetOf(n).key;
-        return `<span class="chip ${presetOf(n).status}">${esc(n)}${ed
-          ? `<input class="gk" data-n="${esc(n)}" value="${esc(k)}" placeholder="${esc(def)}" title="key in this group: click, then press it. Backspace clears it (blank = preset's ${esc(def)})."><button data-n="${esc(n)}" title="remove from group">×</button>`
+        return `<span class="chip">${esc(n)}${ed
+          ? `<input class="gk" data-n="${esc(n)}" value="${esc(k)}" placeholder="${esc(def)}" title="key in this group: click, then press it. Backspace clears it (blank = the pose's ${esc(def)})."><button data-n="${esc(n)}" title="remove from group">×</button>`
           : ` <code>${esc(k || def)}</code>`}</span>`;
       }).join('')}</div>`;
     el.querySelector('.load').onclick = () => usePresets(g.presets, true, g.keys);
@@ -300,7 +296,7 @@ function renderLibrary() {
     if (!ed) continue;
     el.querySelector('.name').onchange = e => renameGroup(g, e.target.value);
     el.querySelector('.del').onclick = () => {
-      if (!confirm(`Delete group "${g.name}"? Its presets stay.`)) return;
+      if (!confirm(`Delete group "${g.name}"? Its poses stay in the library.`)) return;
       lib.groups.splice(lib.groups.indexOf(g), 1);
       if (libView.group === g.name) libView.group = '';
       saveLibrary();
@@ -312,11 +308,51 @@ function renderLibrary() {
       saveLibrary();
     }, true));
   }
+}
+
+function renderPresets() {
+  const root = document.getElementById('library');
+  if (!root || !libPanel.classList.contains('open')) return;
+  const custom = lib.presets.filter(editable).length;
+  const inUse = new Set(poses.map(p => p.preset));
+  const grp = lib.groups.find(g => g.name === libView.group);
+  const q = libView.search.toLowerCase();
+  const shown = lib.presets.filter(p => (libView.kind === 'all' || kindOf(p) === libView.kind)
+    && (!grp || grp.presets.includes(p.name)) && (!q || (p.name + ' ' + p.notes).toLowerCase().includes(q)));
+
+  for (const n of picked) if (!presetOf(n)) picked.delete(n);   // renamed or deleted since it was ticked
+  const hiddenTicks = [...picked].filter(n => !shown.some(p => p.name === n)).length;   // still grouped: say so
+
+  root.innerHTML = `
+    <div class="bar" style="margin-top:0"><button class="primary np" title="A new custom pose, saved here and added to your poses to tune live">+ new pose</button>
+      <span class="small">${lib.presets.length} poses: ${lib.presets.length - custom} built-in, ${custom} custom</span></div>
+    <p class="small">Every pose you can add. <b>+ add pose</b> on the main page puts a copy in your poses to tune live; <b>→ library</b> on
+      the pose saves it back here. Built-ins are locked: <b>clone</b> one to make your own.</p>
+    <div class="bar">
+      <select class="fs">${['all', 'built-in', 'custom'].map(s => `<option ${s === libView.kind ? 'selected' : ''}>${s}</option>`).join('')}</select>
+      <select class="fg"><option value="">any group</option>${lib.groups.map(g => `<option ${g.name === libView.group ? 'selected' : ''}>${esc(g.name)}</option>`).join('')}</select>
+      <input class="fq" placeholder="search" value="${esc(libView.search)}">
+      <button class="pk" title="Tick poses to make a new group of them">select to group</button>
+    </div>
+    ${picking ? `<div class="bar"><span class="small">${picked.size} ticked${hiddenTicks ? `, ${hiddenTicks} hidden by the filter` : ''}</span>
+      <button class="primary gp" ${picked.size ? '' : 'disabled'}>+ group from ticked</button><button class="pc">cancel</button></div>` : ''}
+    <div class="presets"></div>`;
+  root.querySelector('.pk').onclick = () => { picking = true; renderLibrary(); };
+  root.querySelector('.pk').hidden = picking;
+  if (picking) {
+    root.querySelector('.gp').onclick = () => { const names = lib.presets.map(p => p.name).filter(n => picked.has(n)); stopPicking(); addGroup('new group', names); };
+    root.querySelector('.pc').onclick = () => { stopPicking(); renderLibrary(); };
+  }
+  root.querySelector('.np').onclick = newPreset;
+  root.querySelector('.fs').onchange = e => { libView.kind = e.target.value; renderLibrary(); };
+  root.querySelector('.fg').onchange = e => { libView.group = e.target.value; renderLibrary(); };
+  const fq = root.querySelector('.fq');
+  fq.oninput = e => { libView.search = e.target.value; renderLibrary(); const f = document.querySelector('#library .fq'); f.focus(); f.setSelectionRange(f.value.length, f.value.length); };
 
   const ps = root.querySelector('.presets');
   for (const pr of shown) {
     const el = document.createElement('div');
-    el.className = 'preset ' + pr.status;
+    el.className = 'preset' + (pr.builtin ? '' : ' custom');
     const ed = editable(pr), other = otherSide(pr);
     const member = lib.groups.filter(g => g.presets.includes(pr.name)), others = lib.groups.filter(g => editable(g) && !member.includes(g));
     el.innerHTML = `
@@ -325,20 +361,17 @@ function renderLibrary() {
         <div class="pose-head">
           ${picking ? `<input type="checkbox" class="pick" title="tick presets, then + group from ticked" ${picked.has(pr.name) ? 'checked' : ''}>` : ''}${ed ? `
           ${pr.builtin ? `<b class="name">${esc(pr.name)}</b>` : `<input class="name" value="${esc(pr.name)}" title="preset name">`}
-          <select class="st" title="flip to tested once it works in a drill">${['tested', 'untested'].map(s => `<option ${s === pr.status ? 'selected' : ''}>${s}</option>`).join('')}</select>
           <span class="small">default key</span><input class="key" value="${esc(pr.key)}" title="click, then press the key: space, f1, left shift... Letters, digits and names the browser can't capture (tab, num_lock): type, then Enter. Esc while typing cancels. Groups can bind it to another key.">` : `
-          <b class="name">${esc(pr.name)}</b><span class="badge ${pr.status}">${pr.status}</span>
+          <b class="name">${esc(pr.name)}</b>
           <span class="small">default key <code>${esc(pr.key)}</code></span>`}
-          ${pr.builtin ? '<span class="tag">built-in</span>' : ''}
+          <span class="tag">${kindOf(pr)}</span>
           ${other ? `<span class="tag" title="left/right pair: tuning either side tunes the other, mirrored">⇄ ${esc(other.name)}</span>` : ''}
         </div>
         ${ed ? `<textarea class="notes" rows="2" placeholder="how to do it">${esc(pr.notes)}</textarea>` : `<p class="small notes">${esc(pr.notes)}</p>`}
         <div class="chips">${member.map(g => `<span class="chip">${esc(g.name)}${editable(g) ? `<button data-g="${esc(g.name)}" title="remove from group">×</button>` : ''}</span>`).join('')}
           ${others.length ? `<select class="tog"><option value="">+ group…</option>${others.map(g => `<option>${esc(g.name)}</option>`).join('')}</select>` : ''}</div>
         <div class="bar">
-          ${inUse.has(pr.name) ? `<button class="show soft" title="Already in the active poses: go to its card to tune it">show</button>
-            <button class="use" title="Add another copy to the active poses, e.g. to bind it to a second key">use again</button>`
-          : '<button class="use soft">use</button>'}
+          ${inUse.has(pr.name) ? `<button class="show soft" title="Go to its card in your poses to tune it">show</button>` : ''}
           <button class="cl">clone</button>${!pr.builtin ? '<button class="danger del">delete</button>' : ''}
           <span class="small">${pr.conditions.length} condition${pr.conditions.length === 1 ? '' : 's'}${pr.delay ? `, delay ${pr.delay}s` : ''}${pr.hold ? `, hold ${pr.hold}s` : ''}</span>
         </div>
@@ -347,16 +380,14 @@ function renderLibrary() {
     el.querySelectorAll('.chips button').forEach(b => b.onclick = () => { removeFromGroup(lib.groups.find(x => x.name === b.dataset.g), pr.name); saveLibrary(); });
     const tog = el.querySelector('.tog');
     if (tog) tog.onchange = e => { lib.groups.find(g => g.name === e.target.value).presets.push(pr.name); saveLibrary(); };
-    el.querySelector('.use').onclick = () => usePresets([pr.name], false);
     if (inUse.has(pr.name)) el.querySelector('.show').onclick = () => showPose(pr.name);
     el.querySelector('.cl').onclick = () => clonePreset(pr);
     ps.appendChild(el);
     if (!pr.builtin) el.querySelector('.del').onclick = () => deletePreset(pr);
     if (!ed) continue;
     if (!pr.builtin) el.querySelector('.name').onchange = e => renamePreset(pr, e.target.value);
-    el.querySelector('.st').onchange = e => { pr.status = e.target.value; saveLibrary(); };
     keyField(el.querySelector('.key'), k => { pr.key = k; saveLibrary(); });
     el.querySelector('.notes').onchange = e => { pr.notes = e.target.value; saveLibrary(); };
   }
-  if (!shown.length) ps.innerHTML = '<p class="small">No presets match.</p>';
+  if (!shown.length) ps.innerHTML = '<p class="small">No poses match.</p>';
 }
