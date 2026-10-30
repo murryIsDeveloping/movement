@@ -1,0 +1,1116 @@
+presets:
+- name: jog
+  status: tested
+  notes: Jog on the spot, body upright.
+  key: w
+  conditions:
+  - feature: lean
+    op: '>'
+    value: -0.25
+  - feature: lean
+    op: <
+    value: 0.25
+  - feature: step_cadence
+    op: '>'
+    value: 0.4
+  margin: 0.1
+  enabled: true
+  hold: 0.3
+  delay: 0.0
+- name: jump
+  status: tested
+  notes: Jump straight up.
+  key: space
+  conditions:
+  - feature: hip_rise
+    op: '>'
+    value: 0.32
+  margin: 0.1
+  enabled: true
+  hold: 0.3
+  delay: 0.0
+- name: right
+  status: tested
+  notes: Right arm straight out to the side at shoulder height, left arm down, body
+    upright. Hold still.
+  key: d
+  conditions:
+  - feature: right_arm_raise
+    op: <
+    value: 100.0
+  - feature: right_arm_raise
+    op: '>'
+    value: 76.0
+  - feature: left_arm_raise
+    op: <
+    value: 35.0
+  - feature: lean
+    op: <
+    value: 0.1
+  - feature: lean
+    op: '>'
+    value: -0.1
+  - feature: right_wrist_up
+    op: <
+    value: 0.4
+  - feature: right_wrist_vy
+    op: <
+    value: 1.5
+  - feature: right_wrist_vy
+    op: '>'
+    value: -1.5
+  margin: 0.1
+  enabled: true
+  hold: 0.25
+  delay: 0.35
+- name: stride right
+  status: tested
+  notes: Jog on the spot leaning to your right.
+  key: e
+  conditions:
+  - feature: step_cadence
+    op: '>'
+    value: 0.4
+  - feature: lean
+    op: '>'
+    value: 0.25
+  margin: 0.1
+  enabled: true
+  hold: 0.25
+  delay: 0.0
+- name: left
+  status: tested
+  notes: Left arm straight out to the side at shoulder height, right arm down, body
+    upright. Hold still.
+  key: a
+  conditions:
+  - feature: left_arm_raise
+    op: '>'
+    value: 76.0
+  - feature: left_arm_raise
+    op: <
+    value: 100.0
+  - feature: right_arm_raise
+    op: <
+    value: 35.0
+  - feature: lean
+    op: <
+    value: 0.1
+  - feature: lean
+    op: '>'
+    value: -0.1
+  - feature: left_wrist_up
+    op: <
+    value: 0.4
+  - feature: left_wrist_vy
+    op: <
+    value: 1.5
+  - feature: left_wrist_vy
+    op: '>'
+    value: -1.5
+  margin: 0.1
+  enabled: true
+  hold: 0.25
+  delay: 0.35
+- name: stride left
+  status: tested
+  notes: Jog on the spot leaning to your left.
+  key: q
+  conditions:
+  - feature: step_cadence
+    op: '>'
+    value: 0.4
+  - feature: lean
+    op: <
+    value: -0.25
+  margin: 0.1
+  enabled: true
+  hold: 0.25
+  delay: 0.0
+- name: pick up
+  status: tested
+  notes: Squat with both arms hanging straight down.
+  key: l
+  conditions:
+  - feature: left_arm_raise
+    op: <
+    value: 15.0
+  - feature: hip_drop
+    op: '>'
+    value: 0.5
+  - feature: right_arm_raise
+    op: <
+    value: 15.0
+  margin: 0.1
+  enabled: true
+  hold: 0.25
+  delay: 0.0
+- name: shoot
+  status: tested
+  notes: 'Bow draw: left arm out, right hand pulled back to the face. Disabled in
+    the current setup.'
+  key: '1'
+  conditions:
+  - feature: left_arm_angle
+    op: <
+    value: 180.0
+  - feature: right_arm_angle
+    op: <
+    value: 58.0
+  - feature: left_wrist_up
+    op: '>'
+    value: -0.11
+  - feature: right_wrist_up
+    op: '>'
+    value: -0.37
+  - feature: right_arm_raise
+    op: '>'
+    value: 38.0
+  - feature: left_arm_raise
+    op: '>'
+    value: 18.0
+  margin: 0.1
+  enabled: false
+  hold: 0.4
+  delay: 0.0
+- name: hold sword
+  status: tested
+  notes: Both upper arms out at shoulder height, elbows sharply bent, hands up by
+    the head.
+  key: '1'
+  conditions:
+  - feature: wrists_distance
+    op: '>'
+    value: 0.0
+  - feature: left_arm_angle
+    op: <
+    value: 39.0
+  - feature: right_arm_angle
+    op: <
+    value: 36.0
+  - feature: right_arm_raise
+    op: '>'
+    value: 77.0
+  - feature: left_arm_raise
+    op: '>'
+    value: 82.0
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.0
+- name: right up
+  status: tested
+  notes: Right arm straight up overhead, left arm down.
+  key: '2'
+  conditions:
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.75
+  - feature: right_arm_raise
+    op: '>'
+    value: 130.0
+  - feature: left_wrist_up
+    op: <
+    value: -0.2
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.0
+- name: left up
+  status: tested
+  notes: Left arm straight up overhead, right arm down.
+  key: '3'
+  conditions:
+  - feature: left_wrist_up
+    op: '>'
+    value: 0.75
+  - feature: left_arm_raise
+    op: '>'
+    value: 130.0
+  - feature: right_wrist_up
+    op: <
+    value: -0.2
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.0
+- name: squat hands up
+  status: tested
+  notes: Squat with both hands overhead.
+  key: '0'
+  conditions:
+  - feature: hip_drop
+    op: '>'
+    value: 0.4
+  - feature: left_wrist_up
+    op: '>'
+    value: 0.75
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.75
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.0
+- name: squat hands out
+  status: tested
+  notes: Squat with both arms straight out to the sides.
+  key: '-'
+  conditions:
+  - feature: hip_drop
+    op: '>'
+    value: 0.4
+  - feature: right_arm_raise
+    op: '>'
+    value: 65.0
+  - feature: left_arm_raise
+    op: '>'
+    value: 67.0
+  - feature: right_arm_raise
+    op: <
+    value: 106.0
+  - feature: left_arm_raise
+    op: <
+    value: 112.0
+  - feature: left_arm_angle
+    op: '>'
+    value: 120.0
+  - feature: right_arm_angle
+    op: '>'
+    value: 120.0
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.0
+- name: right knee up
+  status: tested
+  notes: Lift the right knee high, left foot planted.
+  key: '4'
+  conditions:
+  - feature: right_knee_lift
+    op: '>'
+    value: 0.6
+  - feature: left_knee_lift
+    op: <
+    value: 0.1
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.0
+- name: left knee up
+  status: tested
+  notes: Lift the left knee high, right foot planted.
+  key: '5'
+  conditions:
+  - feature: left_knee_lift
+    op: '>'
+    value: 0.6
+  - feature: right_knee_lift
+    op: <
+    value: 0.1
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.0
+- name: left punch
+  status: tested
+  notes: Fast left punch across or to the side (straight at the camera barely registers).
+  key: '9'
+  conditions:
+  - feature: left_punch
+    op: '>'
+    value: 500.0
+  - feature: hip_drop
+    op: <
+    value: 0.4
+  - feature: left_arm_raise
+    op: <
+    value: 75.0
+  - feature: right_arm_raise
+    op: <
+    value: 75.0
+  - feature: left_arm_raise
+    op: '>'
+    value: 28.0
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.0
+- name: right punch
+  status: tested
+  notes: Fast right punch across or to the side (straight at the camera barely registers).
+  key: n
+  conditions:
+  - feature: right_punch
+    op: '>'
+    value: 500.0
+  - feature: hip_drop
+    op: <
+    value: 0.4
+  - feature: right_arm_raise
+    op: <
+    value: 75.0
+  - feature: left_arm_raise
+    op: <
+    value: 75.0
+  - feature: right_arm_raise
+    op: '>'
+    value: 28.0
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.0
+- name: both arms up
+  status: untested
+  notes: Both arms straight up overhead, hands apart (a Y or touchdown). Standing.
+  key: '6'
+  conditions:
+  - feature: left_arm_raise
+    op: '>'
+    value: 150.0
+  - feature: right_arm_raise
+    op: '>'
+    value: 150.0
+  - feature: left_wrist_up
+    op: '>'
+    value: 0.75
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.75
+  - feature: wrists_distance
+    op: '>'
+    value: 0.5
+  - feature: hip_drop
+    op: <
+    value: 0.3
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.2
+- name: steeple
+  status: untested
+  notes: Both hands together overhead, palms touching. Standing.
+  key: c
+  conditions:
+  - feature: left_wrist_up
+    op: '>'
+    value: 0.7
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.7
+  - feature: wrists_distance
+    op: <
+    value: 0.3
+  - feature: hip_drop
+    op: <
+    value: 0.3
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.2
+- name: t-pose
+  status: untested
+  notes: Both arms straight out to the sides at shoulder height. Standing.
+  key: '7'
+  conditions:
+  - feature: left_arm_raise
+    op: '>'
+    value: 75.0
+  - feature: left_arm_raise
+    op: <
+    value: 105.0
+  - feature: right_arm_raise
+    op: '>'
+    value: 75.0
+  - feature: right_arm_raise
+    op: <
+    value: 105.0
+  - feature: left_arm_angle
+    op: '>'
+    value: 150.0
+  - feature: right_arm_angle
+    op: '>'
+    value: 150.0
+  - feature: hip_drop
+    op: <
+    value: 0.3
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+- name: right arm diagonal up
+  status: untested
+  notes: Right arm straight, pointing up and out at 45 degrees. Left arm down.
+  key: f
+  conditions:
+  - feature: right_arm_raise
+    op: '>'
+    value: 115.0
+  - feature: right_arm_raise
+    op: <
+    value: 145.0
+  - feature: left_arm_raise
+    op: <
+    value: 35.0
+  - feature: right_arm_angle
+    op: '>'
+    value: 145.0
+  - feature: right_wrist_up
+    op: <
+    value: 0.7
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.35
+- name: left arm diagonal up
+  status: untested
+  notes: Left arm straight, pointing up and out at 45 degrees. Right arm down.
+  key: g
+  conditions:
+  - feature: left_arm_raise
+    op: '>'
+    value: 115.0
+  - feature: left_arm_raise
+    op: <
+    value: 145.0
+  - feature: right_arm_raise
+    op: <
+    value: 35.0
+  - feature: left_arm_angle
+    op: '>'
+    value: 145.0
+  - feature: left_wrist_up
+    op: <
+    value: 0.7
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.35
+- name: right arm diagonal down
+  status: untested
+  notes: Right arm straight, pointing down and out at 45 degrees. Left arm down. Hold
+    still.
+  key: h
+  conditions:
+  - feature: right_arm_raise
+    op: '>'
+    value: 35.0
+  - feature: right_arm_raise
+    op: <
+    value: 65.0
+  - feature: left_arm_raise
+    op: <
+    value: 25.0
+  - feature: right_arm_angle
+    op: '>'
+    value: 150.0
+  - feature: right_punch
+    op: <
+    value: 300.0
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.35
+- name: left arm diagonal down
+  status: untested
+  notes: Left arm straight, pointing down and out at 45 degrees. Right arm down. Hold
+    still.
+  key: j
+  conditions:
+  - feature: left_arm_raise
+    op: '>'
+    value: 35.0
+  - feature: left_arm_raise
+    op: <
+    value: 65.0
+  - feature: right_arm_raise
+    op: <
+    value: 25.0
+  - feature: left_arm_angle
+    op: '>'
+    value: 150.0
+  - feature: left_punch
+    op: <
+    value: 300.0
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.35
+- name: double biceps
+  status: untested
+  notes: 'Flex both arms: upper arms out at shoulder height, forearms up, fists well
+    apart.'
+  key: k
+  conditions:
+  - feature: left_arm_raise
+    op: '>'
+    value: 65.0
+  - feature: left_arm_raise
+    op: <
+    value: 115.0
+  - feature: right_arm_raise
+    op: '>'
+    value: 65.0
+  - feature: right_arm_raise
+    op: <
+    value: 115.0
+  - feature: left_arm_angle
+    op: '>'
+    value: 40.0
+  - feature: left_arm_angle
+    op: <
+    value: 95.0
+  - feature: right_arm_angle
+    op: '>'
+    value: 40.0
+  - feature: right_arm_angle
+    op: <
+    value: 95.0
+  - feature: left_wrist_up
+    op: '>'
+    value: 0.2
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.2
+  - feature: wrists_distance
+    op: '>'
+    value: 1.0
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+- name: hands on head
+  status: untested
+  notes: Both hands on top of your head, elbows out to the sides.
+  key: f8
+  conditions:
+  - feature: left_wrist_up
+    op: '>'
+    value: 0.15
+  - feature: left_wrist_up
+    op: <
+    value: 0.6
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.15
+  - feature: right_wrist_up
+    op: <
+    value: 0.6
+  - feature: left_arm_angle
+    op: '>'
+    value: 40.0
+  - feature: left_arm_angle
+    op: <
+    value: 80.0
+  - feature: right_arm_angle
+    op: '>'
+    value: 40.0
+  - feature: right_arm_angle
+    op: <
+    value: 80.0
+  - feature: wrists_distance
+    op: <
+    value: 0.7
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+- name: hands on hips
+  status: untested
+  notes: Both hands on your hips, elbows out.
+  key: f9
+  conditions:
+  - feature: left_arm_angle
+    op: <
+    value: 120.0
+  - feature: right_arm_angle
+    op: <
+    value: 120.0
+  - feature: left_wrist_out
+    op: '>'
+    value: 0.15
+  - feature: right_wrist_out
+    op: '>'
+    value: 0.15
+  - feature: wrist_low
+    op: '>'
+    value: -0.35
+  - feature: wrist_low
+    op: <
+    value: 0.15
+  - feature: left_arm_raise
+    op: <
+    value: 60.0
+  - feature: right_arm_raise
+    op: <
+    value: 60.0
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+- name: salute
+  status: untested
+  notes: Right hand flat at your brow, elbow out. Left arm down.
+  key: x
+  conditions:
+  - feature: right_arm_raise
+    op: '>'
+    value: 60.0
+  - feature: right_arm_raise
+    op: <
+    value: 110.0
+  - feature: left_arm_raise
+    op: <
+    value: 30.0
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.4
+  - feature: right_wrist_up
+    op: <
+    value: 0.75
+  - feature: right_arm_angle
+    op: <
+    value: 50.0
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+- name: cross arms
+  status: untested
+  notes: Forearms crossed in an X in front of your chest.
+  key: z
+  conditions:
+  - feature: left_wrist_out
+    op: <
+    value: -0.05
+  - feature: right_wrist_out
+    op: <
+    value: -0.05
+  - feature: left_wrist_up
+    op: '>'
+    value: -0.9
+  - feature: left_wrist_up
+    op: <
+    value: 0.0
+  - feature: right_wrist_up
+    op: '>'
+    value: -0.9
+  - feature: right_wrist_up
+    op: <
+    value: 0.0
+  - feature: wrists_distance
+    op: '>'
+    value: 0.3
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+- name: prayer hands
+  status: untested
+  notes: Palms together in front of your chest, held still.
+  key: '='
+  conditions:
+  - feature: wrists_distance
+    op: <
+    value: 0.2
+  - feature: left_wrist_up
+    op: '>'
+    value: -0.7
+  - feature: left_wrist_up
+    op: <
+    value: 0.1
+  - feature: right_wrist_up
+    op: '>'
+    value: -0.7
+  - feature: right_wrist_up
+    op: <
+    value: 0.1
+  - feature: clap
+    op: '>'
+    value: -1.5
+  - feature: clap
+    op: <
+    value: 1.5
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+- name: clap
+  status: untested
+  notes: One sharp clap in front of you.
+  key: '8'
+  conditions:
+  - feature: clap
+    op: '>'
+    value: 3.0
+  - feature: wrists_distance
+    op: <
+    value: 0.35
+  margin: 0.1
+  enabled: true
+  hold: 0.3
+  delay: 0.0
+- name: right hand swipe out
+  status: untested
+  notes: Sweep the right hand fast out to your right at chest height.
+  key: f6
+  conditions:
+  - feature: right_wrist_vx
+    op: '>'
+    value: 4.0
+  - feature: right_wrist_up
+    op: '>'
+    value: -0.6
+  - feature: right_arm_raise
+    op: '>'
+    value: 30.0
+  margin: 0.1
+  enabled: true
+  hold: 0.3
+  delay: 0.0
+- name: left hand swipe out
+  status: untested
+  notes: Sweep the left hand fast out to your left at chest height.
+  key: f7
+  conditions:
+  - feature: left_wrist_vx
+    op: <
+    value: -4.0
+  - feature: left_wrist_up
+    op: '>'
+    value: -0.6
+  - feature: left_arm_raise
+    op: '>'
+    value: 30.0
+  margin: 0.1
+  enabled: true
+  hold: 0.3
+  delay: 0.0
+- name: right uppercut
+  status: untested
+  notes: 'Fast right uppercut: fist drives upward, elbow bent.'
+  key: y
+  conditions:
+  - feature: right_wrist_vy
+    op: '>'
+    value: 4.0
+  - feature: right_arm_angle
+    op: <
+    value: 110.0
+  - feature: right_wrist_up
+    op: '>'
+    value: -0.5
+  - feature: hip_drop
+    op: <
+    value: 0.4
+  margin: 0.1
+  enabled: true
+  hold: 0.3
+  delay: 0.0
+- name: left uppercut
+  status: untested
+  notes: 'Fast left uppercut: fist drives upward, elbow bent.'
+  key: u
+  conditions:
+  - feature: left_wrist_vy
+    op: '>'
+    value: 4.0
+  - feature: left_arm_angle
+    op: <
+    value: 110.0
+  - feature: left_wrist_up
+    op: '>'
+    value: -0.5
+  - feature: hip_drop
+    op: <
+    value: 0.4
+  margin: 0.1
+  enabled: true
+  hold: 0.3
+  delay: 0.0
+- name: star jump
+  status: untested
+  notes: Jump with both hands going overhead (jumping jack). Also fires jump.
+  key: p
+  conditions:
+  - feature: hip_rise
+    op: '>'
+    value: 0.2
+  - feature: left_wrist_up
+    op: '>'
+    value: 0.5
+  - feature: right_wrist_up
+    op: '>'
+    value: 0.5
+  margin: 0.1
+  enabled: true
+  hold: 0.3
+  delay: 0.0
+- name: right knee to left elbow
+  status: untested
+  notes: 'Cross crunch: lift the right knee and bring the left elbow down across to
+    it. Clashes with right knee up.'
+  key: i
+  conditions:
+  - feature: right_knee_lift
+    op: '>'
+    value: 0.5
+  - feature: left_arm_angle
+    op: <
+    value: 70.0
+  - feature: left_wrist_out
+    op: <
+    value: 0.1
+  - feature: left_wrist_up
+    op: <
+    value: 0.0
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.0
+- name: left knee to right elbow
+  status: untested
+  notes: 'Cross crunch: lift the left knee and bring the right elbow down across to
+    it. Clashes with left knee up.'
+  key: o
+  conditions:
+  - feature: left_knee_lift
+    op: '>'
+    value: 0.5
+  - feature: right_arm_angle
+    op: <
+    value: 70.0
+  - feature: right_wrist_out
+    op: <
+    value: 0.1
+  - feature: right_wrist_up
+    op: <
+    value: 0.0
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.0
+- name: side bend left
+  status: untested
+  notes: Feet still, bend sideways at the waist to your left.
+  key: f11
+  conditions:
+  - feature: lean
+    op: <
+    value: -0.35
+  - feature: step_cadence
+    op: <
+    value: 0.2
+  - feature: hip_drop
+    op: <
+    value: 0.3
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+- name: side bend right
+  status: untested
+  notes: Feet still, bend sideways at the waist to your right.
+  key: f12
+  conditions:
+  - feature: lean
+    op: '>'
+    value: 0.35
+  - feature: step_cadence
+    op: <
+    value: 0.2
+  - feature: hip_drop
+    op: <
+    value: 0.3
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+- name: head tilt left
+  status: untested
+  notes: Body upright, tilt your head toward your left shoulder.
+  key: r
+  conditions:
+  - feature: head_tilt
+    op: <
+    value: -0.15
+  - feature: lean
+    op: '>'
+    value: -0.1
+  - feature: lean
+    op: <
+    value: 0.1
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+- name: head tilt right
+  status: untested
+  notes: Body upright, tilt your head toward your right shoulder.
+  key: t
+  conditions:
+  - feature: head_tilt
+    op: '>'
+    value: 0.15
+  - feature: lean
+    op: '>'
+    value: -0.1
+  - feature: lean
+    op: <
+    value: 0.1
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+- name: toe touch
+  status: untested
+  notes: Legs straight, bend forward and reach for your toes. Bending shortens the
+    torso on camera, so expect tuning.
+  key: f10
+  conditions:
+  - feature: wrist_low
+    op: '>'
+    value: 0.9
+  - feature: hip_drop
+    op: <
+    value: 0.3
+  margin: 0.1
+  enabled: true
+  hold: 0.4
+  delay: 0.3
+groups:
+- name: current setup
+  notes: ''
+  presets:
+  - jog
+  - jump
+  - right
+  - stride right
+  - left
+  - stride left
+  - pick up
+  - shoot
+  - hold sword
+  - right up
+  - left up
+  - squat hands up
+  - squat hands out
+  - right knee up
+  - left knee up
+  - left punch
+  - right punch
+  keys: {}
+- name: 'test: arms held'
+  notes: ''
+  presets:
+  - both arms up
+  - steeple
+  - t-pose
+  - right arm diagonal up
+  - left arm diagonal up
+  - right arm diagonal down
+  - left arm diagonal down
+  - double biceps
+  - hands on head
+  - hands on hips
+  - salute
+  - cross arms
+  - prayer hands
+  keys: {}
+- name: 'test: arm moves'
+  notes: ''
+  presets:
+  - clap
+  - right hand swipe out
+  - left hand swipe out
+  - right uppercut
+  - left uppercut
+  keys: {}
+- name: 'test: body'
+  notes: ''
+  presets:
+  - star jump
+  - right knee to left elbow
+  - left knee to right elbow
+  - side bend left
+  - side bend right
+  - head tilt left
+  - head tilt right
+  - toe touch
+  keys: {}
+- name: wow hunter
+  notes: 'Movement on W/A/D/Q/E and space. Shots and pet abilities on action bar 1-8:
+    put your main shot on 1 and your rotation after it.'
+  presets:
+  - jog
+  - jump
+  - right
+  - left
+  - stride right
+  - stride left
+  - right punch
+  - left punch
+  - right up
+  - left up
+  - hold sword
+  - squat hands out
+  - right knee up
+  - left knee up
+  - pick up
+  keys:
+    right punch: '1'
+    left punch: '2'
+    right up: '3'
+    left up: '4'
+    hold sword: '5'
+    squat hands out: '6'
+    right knee up: '7'
+    left knee up: '8'
+- name: wow mage
+  notes: 'Movement on W/A/D/Q/E and space. Spells on action bar 1-8: punches for your
+    filler casts, both arms up for a big AoE, t-pose for Frost Nova, clap to interrupt.'
+  presets:
+  - jog
+  - jump
+  - right
+  - left
+  - stride right
+  - stride left
+  - right punch
+  - left punch
+  - right up
+  - left up
+  - both arms up
+  - t-pose
+  - clap
+  - squat hands up
+  - pick up
+  keys:
+    right punch: '1'
+    left punch: '2'
+    right up: '3'
+    left up: '4'
+    both arms up: '5'
+    t-pose: '6'
+    clap: '7'
+    squat hands up: '8'
+- name: mario
+  notes: 'Side-scrolling platformer on a keyboard-mapped emulator: arrows for the
+    D-pad, x = A (jump), z = B (run, fireball). Arm out to walk that way, jog to run,
+    punch for a fireball, squat to crouch or go down a pipe, right arm up for up.'
+  presets:
+  - right
+  - left
+  - jog
+  - jump
+  - right punch
+  - pick up
+  - right up
+  keys:
+    right: right
+    left: left
+    jog: z
+    jump: x
+    right punch: z
+    pick up: down
+    right up: up

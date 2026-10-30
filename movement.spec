@@ -2,7 +2,7 @@
 import sys
 from PyInstaller.utils.hooks import collect_data_files, collect_dynamic_libs
 
-datas = [("models", "models"), ("static", "static")]
+datas = [("models", "models"), ("static", "static"), ("presets.yaml", ".")]
 datas += collect_data_files("mediapipe")
 binaries = collect_dynamic_libs("mediapipe")
 

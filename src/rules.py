@@ -28,6 +28,7 @@ class Pose:
     enabled: bool = True
     hold: float = 0.0       # seconds the key stays down after the conditions stop: a one-frame punch becomes a press
     delay: float = 0.0      # seconds the conditions must hold before the key goes down: an arm passing through doesn't fire
+    preset: str = ""        # library preset this pose came from, so tuning it can be saved back
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -44,7 +45,8 @@ class Pose:
             conds.append(Condition(c["feature"], c["op"], float(c["value"])))
         return cls(name=d["name"], key=str(d["key"]), conditions=conds,
                    margin=float(d.get("margin", 0.1)), enabled=bool(d.get("enabled", True)),
-                   hold=max(0.0, float(d.get("hold", 0.0))), delay=max(0.0, float(d.get("delay", 0.0))))
+                   hold=max(0.0, float(d.get("hold", 0.0))), delay=max(0.0, float(d.get("delay", 0.0))),
+                   preset=str(d.get("preset") or ""))
 
 
 class RuleEngine:

@@ -21,6 +21,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.3
+  preset: jog
 - name: jump
   key: space
   conditions:
@@ -30,6 +31,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.3
+  preset: jump
 - name: right
   key: d
   conditions:
@@ -61,6 +63,7 @@ poses:
   enabled: true
   hold: 0.25
   delay: 0.35
+  preset: right
 - name: stride right
   key: e
   conditions:
@@ -73,6 +76,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.25
+  preset: stride right
 - name: left
   key: a
   conditions:
@@ -104,6 +108,7 @@ poses:
   enabled: true
   hold: 0.25
   delay: 0.35
+  preset: left
 - name: stride left
   key: q
   conditions:
@@ -116,6 +121,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.25
+  preset: stride left
 - name: pick up
   key: l
   conditions:
@@ -131,6 +137,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.25
+  preset: pick up
 - name: shoot
   key: '1'
   conditions:
@@ -155,6 +162,7 @@ poses:
   margin: 0.1
   enabled: false
   hold: 0.4
+  preset: shoot
 - name: hold sword
   key: '1'
   conditions:
@@ -176,6 +184,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.4
+  preset: hold sword
 - name: right up
   key: '2'
   conditions:
@@ -191,6 +200,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.4
+  preset: right up
 - name: left up
   key: '3'
   conditions:
@@ -206,6 +216,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.4
+  preset: left up
 - name: squat hands up
   key: '0'
   conditions:
@@ -221,6 +232,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.4
+  preset: squat hands up
 - name: squat hands out
   key: '-'
   conditions:
@@ -248,6 +260,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.4
+  preset: squat hands out
 - name: right knee up
   key: '4'
   conditions:
@@ -260,6 +273,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.4
+  preset: right knee up
 - name: left knee up
   key: '5'
   conditions:
@@ -272,6 +286,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.4
+  preset: left knee up
 - name: left punch
   key: '9'
   conditions:
@@ -293,6 +308,7 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.4
+  preset: left punch
 - name: right punch
   key: n
   conditions:
@@ -314,3 +330,4 @@ poses:
   margin: 0.1
   enabled: true
   hold: 0.4
+  preset: right punch

@@ -8,7 +8,7 @@ from collections import deque
 import yaml
 from aiohttp import web
 
-from src import paths
+from src import library, paths
 from src.rules import Pose
 
 STATIC = paths.resource_root() / "static"
@@ -89,6 +89,19 @@ async def config_put(request):
     return web.json_response({"ok": True, "poses": len(data["poses"])})
 
 
+async def library_get(_):
+    return web.json_response({**library.load(), "edit_builtins": DEV})
+
+
+async def library_put(request):
+    """The GUI edits the library locally and sends the whole thing back. Built-ins only change running from source."""
+    try:
+        library.save(await request.json(), edit_builtins=DEV)
+    except Exception as e:
+        return web.json_response({"ok": False, "error": str(e)}, status=400)
+    return web.json_response({"ok": True})
+
+
 async def recording_post(request):
     """Saves a drill run (prompts, hits, every frame's features) for looking at later."""
     data = await request.json()
@@ -149,6 +162,8 @@ def make_app(hub: Hub) -> web.Application:
     app.router.add_get("/ws", ws_handler)
     app.router.add_get("/config", config_get)
     app.router.add_put("/config", config_put)
+    app.router.add_get("/library", library_get)
+    app.router.add_put("/library", library_put)
     if DEV:
         app.router.add_post("/recording", recording_post)
     app.router.add_static("/static", STATIC)

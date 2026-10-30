@@ -88,6 +88,27 @@
   .clash { display:grid; grid-template-columns: 70px 1fr; gap:12px; align-items:center; background:var(--panel); border:1px solid var(--line); border-left:6px solid var(--warn); border-radius:8px; padding:8px 12px; margin-bottom:8px; }
   .clash .fig svg { margin:0; }
   .clash code { color:var(--warn); }
+  .side.wide { width:min(600px, 100vw); }
+  .badge { font-size:12px; padding:2px 8px; border-radius:999px; border:1px solid var(--line); color:var(--dim); cursor:pointer; user-select:none; }
+  .badge.tested { color:var(--on); border-color:var(--on); }
+  .badge.untested, .badge.changed { color:var(--warn); border-color:var(--warn); }
+  .badge.changed { border-style:dashed; }
+  .group, .preset { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px 12px; margin-bottom:8px; }
+  .group .name, .preset .name { flex:1; min-width:120px; font-weight:600; }
+  .preset { display:grid; grid-template-columns: 70px 1fr; gap:12px; align-items:start; border-left:6px solid var(--on); }
+  .preset.untested { border-left-color:var(--warn); }
+  .preset .fig svg { margin:0; }
+  .preset textarea { width:100%; margin-top:6px; background:#0f1113; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; resize:vertical; }
+  .preset .bar { margin-top:6px; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; align-items:center; }
+  .tag { font-size:11px; padding:1px 6px; border-radius:4px; background:#0f1113; color:var(--dim); border:1px solid var(--line); }
+  .preset p.notes { margin:6px 0 0; }
+  .chip { display:inline-flex; align-items:center; gap:4px; font-size:12px; padding:2px 4px 2px 10px; border-radius:999px; border:1px solid var(--line); }
+  .chip.untested { border-color:var(--warn); color:var(--warn); }
+  .chip button { padding:0 6px; border:none; background:none; color:var(--dim); }
+  .chip input.gk { width:52px; padding:0 4px; margin-left:4px; text-align:center; font-family:ui-monospace, Menlo, monospace; font-size:12px; }
+  .group textarea { width:100%; margin-top:6px; background:#0f1113; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:4px 8px; font:inherit; font-size:12px; resize:vertical; }
+  .group p.small { margin:6px 0 0; }
   .drill { position:fixed; inset:0; background:var(--bg); z-index:20; display:none; flex-direction:column; align-items:center; padding:16px; gap:8px; overflow-y:auto; }
   .drill.open { display:flex; }
   .drill-head { display:flex; width:100%; align-items:center; gap:8px; }
@@ -124,6 +145,7 @@
     <div class="bar" style="margin-top:0">
       <h2 style="margin:0; flex:1">Poses</h2>
       <button id="drillBtn" title="Test yourself: prompts a random pose every few seconds for a minute and scores it">drill</button>
+      <button id="libBtn" title="Preset poses (tested and untested) and groups of them to load">library</button>
       <button id="clashBtn" title="Poses on the same body part that can fire together">clashes</button>
       <button class="primary" id="add">+ new pose</button>
       <a href="/config" download="movement-config.yaml"><button>export</button></a>
@@ -139,6 +161,10 @@
   <div class="side-head"><h2>Clashes</h2><button id="clashClose" title="close (Esc)">×</button></div>
   <div id="clashes"></div>
 </aside>
+<aside class="side wide" id="libPanel">
+  <div class="side-head"><h2>Library</h2><button id="libClose" title="close (Esc)">×</button></div>
+  <div id="library"></div>
+</aside>
 <div class="drill" id="drill">
   <div class="drill-head"><span class="clock"></span><button id="drillClose" title="stop (Esc)">×</button></div>
   <div class="big"></div>
@@ -150,6 +176,7 @@
 <script src="/static/figure.js"></script>
 <script src="/static/capture.js"></script>
 <script src="/static/drill.js"></script>
+<script src="/static/library.js"></script>
 <script>
 let poses = [];          // local editable copy
 let info = {};           // feature_info
@@ -192,6 +219,7 @@ function connect() {
   ws.onclose = () => setTimeout(connect, 1000);
 }
 connect();
+loadLibrary();
 
 // shown over the camera, here and in the drill, while nothing can fire
 function pausedText() {
@@ -201,7 +229,7 @@ function pausedText() {
 
 function send(obj) { if (ws && ws.readyState === 1) ws.send(JSON.stringify(obj)); }
 function pushConfig() { pending = JSON.stringify(poses); pendingAt = performance.now(); send({ type: 'config', config: { poses, send_keys: document.getElementById('send').checked } }); dirty = false; }
-function scheduleSave() { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(pushConfig, 300); scheduleClashes(); }
+function scheduleSave() { dirty = true; clearTimeout(saveTimer); saveTimer = setTimeout(pushConfig, 300); scheduleClashes(); updatePresetBadges(); }
 
 document.getElementById('send').onchange = pushConfig;
 document.getElementById('import').onclick = () => document.getElementById('file').click();
@@ -213,9 +241,12 @@ document.getElementById('file').onchange = async e => {
   dirty = false; e.target.value = '';
 };
 const clashPanel = document.getElementById('clashPanel');
-document.getElementById('clashBtn').onclick = () => clashPanel.classList.toggle('open');
+document.getElementById('clashBtn').onclick = () => { libPanel.classList.remove('open'); clashPanel.classList.toggle('open'); };
 document.getElementById('clashClose').onclick = () => clashPanel.classList.remove('open');
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { clashPanel.classList.remove('open'); endDrill(); } });
+const libPanel = document.getElementById('libPanel');
+document.getElementById('libBtn').onclick = () => { clashPanel.classList.remove('open'); libPanel.classList.toggle('open'); renderLibrary(); };
+document.getElementById('libClose').onclick = () => libPanel.classList.remove('open');
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { clashPanel.classList.remove('open'); libPanel.classList.remove('open'); endDrill(); } });
 document.getElementById('drillBtn').onclick = startDrill;
 document.getElementById('drillClose').onclick = endDrill;
 document.getElementById('reset').onclick =() => send({ type: 'reset_baselines' });
@@ -241,9 +272,11 @@ function renderPoses() {
         <span class="small">key</span><input class="key" value="${esc(p.key)}" title="pynput key name: a, 1, space, shift, f1 ...">
         <span class="small">hold</span><input class="hold" type="number" min="0" step="0.05" value="${p.hold ?? 0}" title="seconds the key stays down after the pose ends: turns a quick punch into a proper press, and rides out brief tracking dropouts">
         <span class="small">delay</span><input class="delay" type="number" min="0" step="0.05" value="${p.delay ?? 0}" title="seconds the pose must be held before the key goes down: stops it firing while an arm passes through on the way to another pose">
+        <span class="badge"></span>
         <label class="toggle small"><input type="checkbox" class="en" ${p.enabled !== false ? 'checked' : ''}> enabled</label>
         <button class="addc">+ condition</button>
         <button class="cap" title="Record the movement and pick conditions from a frame">capture</button>
+        <button class="tolib" title="Save this pose's conditions, key and timings to its library preset (or as a new untested preset)">→ library</button>
         <button class="danger del">delete</button>
       </div>
       <div class="pose-body"><div class="conds"></div><div class="fig"></div></div>
@@ -262,6 +295,7 @@ function renderPoses() {
     };
     div.querySelector('.addc').onclick = () => { p.conditions.push({ feature: 'hip_drop', op: '>', value: 0.3 }); renderPoses(); scheduleSave(); };
     div.querySelector('.cap').onclick = () => startCapture(pi, div.querySelector('.capslot'));
+    wirePresetControls(div, p);
     if (capture && capture.pi === pi) { div.querySelector('.capslot').appendChild(capture.el); }
     const cs = div.querySelector('.conds');
     p.conditions.forEach((c, ci) => cs.appendChild(renderCond(p, c, ci, refresh)));
@@ -269,6 +303,7 @@ function renderPoses() {
     root.appendChild(div);
   });
   scheduleClashes();
+  updatePresetBadges();
   updateLive();
 }
 
